@@ -2,8 +2,8 @@ import { defineConfig } from 'vitepress'
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
-  title: "毛泽东选集在线阅读",
-  description: "提供毛泽东选集第一卷至第四卷的完整在线阅读。",
+  title: "毛泽东选集在线阅读-极简无广告版",
+  description: "提供毛泽东选集第一卷至第四卷的完整在线阅读。支持手机平板适配，极简纯净，无广告干扰，随时随地学习毛选。",
   head: [
     ['link', { rel: 'icon', href: '/logo.png' }]
   ],
@@ -211,6 +211,14 @@ export default defineConfig({
 
     // 3. 社交链接
     socialLinks: [
-    ]
+
+
+      { 
+        icon: {
+          svg: '<svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg"><path d="M128 224h768a64 64 0 0 1 64 64v512a64 64 0 0 1-64 64H128a64 64 0 0 1-64-64V288a64 64 0 0 1 64-64zm0 64v48l384 240 384-240v-48H128zm0 512h768V392L512 632 128 392v408z" fill="currentColor"></path></svg>'
+        }, 
+        link: 'mailto:feng2idea@foxmail.com' // ⚠️这里改成你的真实邮箱
+      }
+    ],
   }
 })
