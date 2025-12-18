@@ -210,15 +210,11 @@ export default defineConfig({
     ],
 
     // 3. 社交链接
-    socialLinks: [
-
-
-      { 
-        icon: {
-          svg: '<svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg"><path d="M128 224h768a64 64 0 0 1 64 64v512a64 64 0 0 1-64 64H128a64 64 0 0 1-64-64V288a64 64 0 0 1 64-64zm0 64v48l384 240 384-240v-48H128zm0 512h768V392L512 632 128 392v408z" fill="currentColor"></path></svg>'
-        }, 
-        link: 'mailto:feng2idea@foxmail.com' // ⚠️这里改成你的真实邮箱
-      }
-    ],
+    socialLinks: [],
+    footer: {
+      message: '如有建议或反馈，欢迎联系：feng2idea@foxmail.com',
+      copyright: 'Copyright © 2025 xuemaoxuan.com'
+    }
+    // 👆👆👆
   }
 })
