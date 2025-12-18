@@ -5,9 +5,6 @@ export default defineConfig({
   title: "毛泽东选集在线阅读",
   description: "提供毛泽东选集第一卷至第五卷的完整在线阅读。",
   
-  // ⚠️⚠️⚠️ 重点在这里！加了两个点 ../ ⚠️⚠️⚠️
-  // 意思就是：跳出 .vitepress 文件夹，把网站生成到最外面的 dist 文件夹去！
-  outDir: '../dist', 
 
   themeConfig: {
     // 1. 顶部导航栏
