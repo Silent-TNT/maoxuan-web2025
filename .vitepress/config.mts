@@ -3,7 +3,10 @@ import { defineConfig } from 'vitepress'
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
   title: "毛泽东选集在线阅读",
-  description: "提供毛泽东选集第一卷至第五卷的完整在线阅读。",
+  description: "提供毛泽东选集第一卷至第四卷的完整在线阅读。",
+  head: [
+    ['link', { rel: 'icon', href: '/logo.png' }]
+  ],
   
 
   themeConfig: {
