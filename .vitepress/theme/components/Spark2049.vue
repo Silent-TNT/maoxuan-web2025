@@ -14,30 +14,21 @@ const progressPercent = Math.min((currentDuration / totalDuration) * 100, 100).t
 
 // --- 2. 交互逻辑 ---
 const showQR = ref(false)
-const activeIndex = ref(-1) // 记录当前被点击激活的火种索引
+const activeIndex = ref(-1)
 
-// 随机样式
 const randomStyle = () => {
   const delay = Math.random() * 2 + 's'
-  const size = 0.8 + Math.random() * 0.5 
+  // 稍微调大一点火种，确保手机上能看见
+  const size = 0.9 + Math.random() * 0.6 
   return { animationDelay: delay, transform: `scale(${size})` }
 }
 
-// 手机端交互：点击切换寄语显示/隐藏
+// 手机交互
 const toggleSpark = (index, event) => {
-  // 阻止冒泡，防止触发背景关闭
   event.stopPropagation()
-  if (activeIndex.value === index) {
-    activeIndex.value = -1 // 如果点的是同一个，就关闭
-  } else {
-    activeIndex.value = index // 否则打开新的
-  }
+  activeIndex.value = activeIndex.value === index ? -1 : index
 }
-
-// 点击背景空白处，关闭所有寄语
-const closeAll = () => {
-  activeIndex.value = -1
-}
+const closeAll = () => activeIndex.value = -1
 </script>
 
 <template>
@@ -47,7 +38,7 @@ const closeAll = () => {
     </a>
 
     <div class="header-section">
-      <h1 class="title">星火计划 2049</h1>
+      <h1 class="title">星火计划</h1>
       
       <div class="intro-box">
         <p class="intro-text">愿景：将该站维护至 2049 年</p>
@@ -56,7 +47,7 @@ const closeAll = () => {
       <div class="time-stats">
         <span class="stat-group">已运行 {{ daysRun }} 天</span>
         <span class="divider">/</span>
-        <span class="stat-group">距 2049 还需 {{ daysLeft }} 天</span>
+        <span class="stat-group">距建国百年还需 {{ daysLeft }} 天</span>
       </div>
       
       <div class="progress-container">
@@ -106,13 +97,13 @@ const closeAll = () => {
 </template>
 
 <style scoped>
-/* 基础样式保持不变 */
+/* 全屏容器：使用 100dvh 适配手机浏览器地址栏 */
 .spark-universe {
-  position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+  position: fixed; top: 0; left: 0; width: 100vw; 
+  height: 100vh; height: 100dvh; /* 核心修复：适配移动端高度 */
   background: #000;
   z-index: 200; color: #fff; display: flex; flex-direction: column; overflow: hidden;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  /* 解决移动端点击高亮背景色问题 */
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -122,135 +113,132 @@ const closeAll = () => {
 }
 .back-home:hover { color: #fff; }
 
+/* --- 头部区域：强制居中修复 --- */
 .header-section {
-  padding-top: 10vh; text-align: center; position: relative; z-index: 10; width: 100%;
+  padding-top: 15vh; /* 稍微下移，视觉更平衡 */
+  width: 100%;
+  display: flex;       /* 开启 Flex 布局 */
+  flex-direction: column; 
+  align-items: center; /* 核心修复：水平绝对居中 */
+  position: relative; z-index: 10;
 }
 
+/* 标题：加大一点，更醒目 */
 .title {
-  font-size: 2rem; font-weight: 200; letter-spacing: 10px; color: #fff;
+  font-size: 2.4rem; font-weight: 200; letter-spacing: 8px; color: #fff;
   margin: 0 0 15px 0;
-  text-shadow: 0 0 30px rgba(255, 50, 50, 0.2); opacity: 0.9;
+  text-shadow: 0 0 30px rgba(255, 50, 50, 0.2); opacity: 0.95;
+  text-align: center;
 }
 
+/* 文案 */
 .intro-box {
-  width: 100%; display: flex; justify-content: center; margin-bottom: 20px;
+  display: flex; justify-content: center; margin-bottom: 30px;
 }
 .intro-text {
   font-family: "Songti SC", "SimSun", serif; font-size: 15px; letter-spacing: 2px;
-  color: rgba(255,255,255,0.6); font-weight: 300;
-  border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px;
+  color: rgba(255,255,255,0.7); font-weight: 300;
+  text-align: center;
 }
 
-/* --- 核心修复：文字颜色优化 --- */
+/* 统计文字 */
 .time-stats {
-  font-size: 12px;
-  /* 改为清晰的亮银色，不再暗淡 */
-  color: #ccc; 
-  margin-bottom: 20px;
-  letter-spacing: 1px; text-transform: uppercase;
+  font-size: 12px; color: #ccc; margin-bottom: 25px;
+  letter-spacing: 1px;
   display: flex; justify-content: center; align-items: center;
-  /* 移除 opacity 属性，保证清晰度 */
-}
-/* 数字样式重置：和文字保持一致，不加粗，不高亮 */
-.stat-group {
-  font-weight: 300;
 }
 .divider { margin: 0 10px; color: #444; }
 
+/* 进度条 */
 .progress-container {
-  width: 100%; display: flex; justify-content: center; margin-bottom: 30px;
+  width: 100%; display: flex; justify-content: center; margin-bottom: 35px;
 }
 .progress-line-bg {
-  width: 240px; height: 1px; background: rgba(255,255,255,0.1); position: relative;
+  width: 260px; height: 1px; background: rgba(255,255,255,0.15); position: relative;
 }
 .progress-line-active {
-  height: 100%; background: #fff; position: relative; box-shadow: 0 0 8px rgba(255,255,255,0.3);
+  height: 100%; background: #fff; position: relative; box-shadow: 0 0 8px rgba(255,255,255,0.4);
 }
 .glowing-dot {
   position: absolute; right: -2px; top: -2px; width: 5px; height: 5px; background: #fff; border-radius: 50%;
   box-shadow: 0 0 5px #fff, 0 0 10px #ff3333;
 }
 
+/* 按钮 */
 .glass-btn {
   display: inline-flex; align-items: center; gap: 6px;
-  padding: 8px 24px; border-radius: 50px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
-  backdrop-filter: blur(10px); color: rgba(255,255,255,0.6); font-size: 12px; cursor: pointer; transition: all 0.4s ease; letter-spacing: 1px;
+  padding: 8px 28px; border-radius: 50px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+  backdrop-filter: blur(10px); color: rgba(255,255,255,0.7); font-size: 13px; cursor: pointer; transition: all 0.4s ease; letter-spacing: 1px;
 }
 .glass-btn:hover {
-  background: rgba(255, 50, 50, 0.1); border-color: rgba(255, 50, 50, 0.3); color: #fff; transform: translateY(-1px);
+  background: rgba(255, 50, 50, 0.15); border-color: rgba(255, 50, 50, 0.3); color: #fff; transform: translateY(-1px);
 }
 
-/* 星火区 */
+/* --- 底部星火区：核心修复 --- */
 .sparks-field {
   flex: 1; display: flex; align-items: flex-end; justify-content: center;
-  flex-wrap: wrap; gap: 60px; padding-bottom: 100px; perspective: 500px;
+  flex-wrap: wrap; gap: 50px; 
+  /* 核心修复：底部增加足够边距，防止被手机Home条遮挡，并向上托举 */
+  padding-bottom: calc(100px + env(safe-area-inset-bottom)); 
+  perspective: 500px;
 }
-.spark-item { position: relative; width: 12px; height: 10px; cursor: pointer; }
+.spark-item { position: relative; width: 14px; height: 12px; cursor: pointer; }
 
+/* 火种核心：更亮，更显眼 */
 .fire-core {
   width: 100%; height: 100%;
   border-radius: 50% 50% 40% 40% / 60% 60% 40% 40%;
-  background: radial-gradient(circle at center bottom, #fff 10%, #ffcc00 30%, #ff3300 60%, #660000 100%);
-  box-shadow: 0 0 5px #ffaa00, 0 0 15px #ff3300, 0 0 30px rgba(210, 43, 43, 0.8), inset 0 -2px 5px rgba(0,0,0,0.5);
-  opacity: 0.8;
+  /* 调亮颜色，防止在手机屏幕上太暗 */
+  background: radial-gradient(circle at center bottom, #fff 20%, #ffcc00 50%, #ff3300 80%, #660000 100%);
+  box-shadow: 0 0 6px #ffaa00, 0 0 15px #ff4400, 0 0 30px rgba(210, 43, 43, 0.6);
+  opacity: 1; /* 保持不透明，只做缩放呼吸 */
   animation: breathe 3s infinite ease-in-out alternate;
-  position: relative;
-  transition: transform 0.3s;
+  position: relative; transition: transform 0.3s;
 }
 
 .fire-core::after {
   content: ''; position: absolute; top: -40%; left: 20%; width: 60%; height: 60%;
-  background: radial-gradient(ellipse at center bottom, rgba(255,200,0,0.8) 0%, rgba(255,50,0,0) 70%);
-  border-radius: 50% 50% 0 0; filter: blur(2px); opacity: 0.6; animation: rise 1.5s infinite linear;
+  background: radial-gradient(ellipse at center bottom, rgba(255,220,0,0.8) 0%, rgba(255,50,0,0) 70%);
+  border-radius: 50% 50% 0 0; filter: blur(2px); opacity: 0.7; animation: rise 1.5s infinite linear;
 }
 
-/* 交互状态：悬浮 OR 被点击激活(手机) */
-.spark-item:hover .fire-core,
-.spark-item.is-active .fire-core { 
-  transform: scale(1.4); opacity: 1;
-  background: radial-gradient(circle at center bottom, #fff 20%, #ffdd33 40%, #ff4400 70%, #880000 100%);
-  box-shadow: 0 0 10px #fff, 0 0 25px #ff5500, 0 0 50px #ff0000;
+.spark-item:hover .fire-core, .spark-item.is-active .fire-core { 
+  transform: scale(1.4); 
+  box-shadow: 0 0 15px #fff, 0 0 30px #ff5500, 0 0 60px #ff0000;
 }
 
-@keyframes breathe { 0% { transform: scale(0.95); opacity: 0.7; filter: brightness(0.8); } 100% { transform: scale(1.05); opacity: 1; filter: brightness(1.2); } }
-@keyframes rise { 0% { transform: translateY(0) scaleX(1); opacity: 0.5; } 50% { transform: translateY(-3px) scaleX(0.8); opacity: 0.8; } 100% { transform: translateY(-6px) scaleX(0.6); opacity: 0; } }
+@keyframes breathe { 0% { transform: scale(0.9); filter: brightness(0.9); } 100% { transform: scale(1.1); filter: brightness(1.2); } }
+@keyframes rise { 0% { transform: translateY(0) scaleX(1); opacity: 0.5; } 100% { transform: translateY(-8px) scaleX(0.5); opacity: 0; } }
 
-/* 卡片调整 */
+/* 寄语卡片 */
 .spark-card {
-  position: absolute; bottom: 35px; left: 50%; transform: translateX(-50%) translateY(10px);
-  background: rgba(20, 0, 0, 0.95); /* 背景加深 */
-  border: 1px solid #522; /* 边框微红 */
+  position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%) translateY(10px);
+  background: rgba(20, 0, 0, 0.95); border: 1px solid #633;
   padding: 10px 14px; border-radius: 4px; width: max-content;
-  
-  /* 默认隐藏 */
-  opacity: 0; visibility: hidden; 
-  transition: all 0.3s; z-index: 50;
-  pointer-events: none; /* 防止遮挡点击 */
+  opacity: 0; visibility: hidden; transition: all 0.2s; z-index: 50; pointer-events: none;
 }
-
-/* 触发显示：悬浮 OR 激活类名 */
-.spark-item:hover .spark-card,
-.spark-item.is-active .spark-card { 
-  opacity: 1; visibility: visible; 
-  transform: translateX(-50%) translateY(0);
+.spark-item:hover .spark-card, .spark-item.is-active .spark-card { 
+  opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0);
 }
-
-.donor-name { font-size: 12px; color: #d88; margin-bottom: 3px; }
+.donor-name { font-size: 12px; color: #eaa; margin-bottom: 3px; }
 .donor-msg { font-size: 14px; color: #fff; font-family: "Songti SC", serif; }
 
+/* 弹窗 */
 .qr-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; justify-content: center; align-items: center; z-index: 500; backdrop-filter: blur(5px); }
 .modal-content { background: #111; border: 1px solid #333; padding: 30px; border-radius: 12px; text-align: center; }
 .qr-img { width: 200px; margin: 20px 0; opacity: 0.9; border-radius: 8px; }
 .close-btn { background: none; border: 1px solid #444; color: #666; padding: 6px 20px; border-radius: 20px; cursor: pointer; margin-top: 15px; }
 .close-btn:hover { border-color: #fff; color: #fff; }
 
+/* 移动端适配 */
 @media (max-width: 768px) {
-  .header-section { padding-top: 12vh; }
-  .title { font-size: 1.5rem; letter-spacing: 6px; margin-bottom: 10px; }
-  .intro-text { font-size: 13px; }
-  .time-stats { font-size: 12px; margin-bottom: 15px; }
-  .progress-line-bg { width: 180px; }
-  .glass-btn { padding: 6px 20px; font-size: 11px; }
-  .sparks-field { gap: 40px; padding-bottom: 80px; }
+  .header-section { padding-top: 18vh; }
+  .title { font-size: 1.8rem; letter-spacing: 5px; }
+  .intro-text { font-size: 14px; }
+  .progress-line-bg { width: 200px; }
+  /* 确保手机上文字绝对居中 */
+  .intro-box, .time-stats, .progress-container, .action-area {
+    display: flex; justify-content: center;
+  }
 }
 </style>
