@@ -1,0 +1,17 @@
+/* .vitepress/theme/style.css */
+
+/* 针对文档正文 (.vp-doc) 的段落 (p) 开启首行缩进 */
+.vp-doc p {
+  text-indent: 2em; /* 缩进2个字符宽度 */
+  text-align: justify; /* 开启两端对齐，让文字块左右更整齐，像印刷书一样 */
+}
+
+/* 修复：避免把列表里的文字也缩进了，那样会很难看 */
+.vp-doc li p {
+  text-indent: 0;
+}
+
+/* 修复：避免把引用块（Blockquote）里的文字缩进 */
+.vp-doc blockquote p {
+  text-indent: 0;
+}
