@@ -31,7 +31,7 @@ features:
     linkText: 进入阅读
 
   - title: 第四卷
-    details: '第三次国内革命战争时期<br><span style="font-size: 13px; opacity: 0.6;">1945年8月 — 1949年9月</span>'
+    details: '第三次国内革命战争时期<br><span style="font-size: 13px; opacity: 0.6;">1945年8月 - 1949年9月</span>'
     link: /第四卷/090-抗日战争胜利后的时局和我们的方针
     linkText: 进入阅读
 ---

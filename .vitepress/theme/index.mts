@@ -1,7 +1,12 @@
 // .vitepress/theme/index.mts
 import DefaultTheme from 'vitepress/theme'
-import './style.css' // <--- 重点是这行，引入了我们刚才写的样式
+import './style.css' // 引入样式
+import DonorWall from './components/DonorWall.vue' // 引入星火墙组件
 
 export default {
-  extends: DefaultTheme
+  extends: DefaultTheme,
+  enhanceApp({ app }) {
+    // 注册星火墙组件
+    app.component('DonorWall', DonorWall)
+  }
 }
