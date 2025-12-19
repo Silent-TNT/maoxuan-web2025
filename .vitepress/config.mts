@@ -36,48 +36,6 @@ export default defineConfig({
     },
     
     // 👆👆👆 汉化结束 👆👆👆
-    // 👇👇👇 替换掉原来的 search 配置 👇👇👇
-    search: {
-      provider: 'local',
-      options: {
-        // ✨ 开启详细视图：搜索时右侧显示正文预览和关键词高亮
-        detailedView: true,
-        
-        miniSearch: {
-          options: {
-            // 优化分词逻辑，尝试减少一点索引体积
-            tokenize: (text) => text.split(/[\s\n\r、。，；！？]+/), 
-          },
-          searchOptions: {
-            // 模糊搜索阈值，设为 0.2 可以让搜索更精准，减少无关结果
-            fuzziness: 0.2,
-          }
-        },
-        
-        locales: {
-          root: {
-            translations: {
-              button: {
-                buttonText: '搜索文档',
-                buttonAriaLabel: '搜索文档'
-              },
-              modal: {
-                displayDetails: '显示详细列表', // 桌面端右下角开关
-                resetButtonTitle: '清除',
-                backButtonTitle: '关闭',
-                noResultsText: '未找到相关结果',
-                footer: {
-                  selectText: '选择',
-                  navigateText: '切换',
-                  closeText: '关闭',
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    // 👆👆👆 搜索配置结束 👆👆👆
     // 1. 顶部导航栏
     nav: [
       { text: '首页', link: '/' },
