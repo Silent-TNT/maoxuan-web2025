@@ -2,65 +2,57 @@
 import { ref } from 'vue'
 import donors from '../../donors.json'
 
-// --- 1. 时间计算逻辑 ---
-// 修正起始时间为 2025-12-19
+// --- 1. 时间计算逻辑 (保持不变) ---
 const startDate = new Date('2025-12-19')
 const targetDate = new Date('2049-10-01')
 const today = new Date()
-
-// 计算天数（向上取整，避免显示 -1 天）
 const daysRun = Math.max(1, Math.ceil((today - startDate) / (1000 * 60 * 60 * 24)))
 const daysLeft = Math.ceil((targetDate - today) / (1000 * 60 * 60 * 24))
-
-// 计算进度条百分比
 const totalDuration = targetDate - startDate
 const currentDuration = today - startDate
 const progressPercent = Math.min((currentDuration / totalDuration) * 100, 100).toFixed(4)
 
 // --- 2. 交互逻辑 ---
-const showQR = ref(false) // 控制二维码弹窗
-
-// 生成随机位置（模拟漫天星火的错落感）
+const showQR = ref(false)
 const randomStyle = () => {
   const delay = Math.random() * 3 + 's' 
-  // 随机大小，营造远近感
-  const size = 0.8 + Math.random() * 0.6 
-  return {
-    animationDelay: delay,
-    transform: `scale(${size})`
-  }
+  const size = 0.5 + Math.random() * 0.5 // 星星改小一点，更精致
+  return { animationDelay: delay, transform: `scale(${size})` }
 }
 </script>
 
 <template>
   <div class="spark-universe">
     <a href="/" class="back-home">
-      <span class="arrow">←</span> 返回首页
+      <span class="arrow">←</span> 首页
     </a>
 
     <div class="header-section">
       <h1 class="title">星火计划 2049</h1>
       
-      <p class="intro-text">
-        愿景：将此站维护至建国百年。这是一场跨越时空的数字长征，<br>
-        您的名字将化作星火，在此永存，共同见证燎原之时。
-      </p>
+      <div class="intro-box">
+        <p class="intro-text">
+          这是一场跨越时空的数字长征<br>
+          愿以星火之名，守此阵地至建国百年
+        </p>
+      </div>
 
       <div class="time-stats">
-        <span>已运行 <strong>{{ daysRun }}</strong> 天</span>
+        <span>已运行 <span class="num">{{ daysRun }}</span> 天</span>
         <span class="divider">/</span>
-        <span>距建国百年还需坚持 <strong>{{ daysLeft }}</strong> 天</span>
+        <span>距 2049 还需 <span class="num">{{ daysLeft }}</span> 天</span>
       </div>
       
-      <div class="progress-bar-bg">
-        <div class="progress-bar-fill" :style="{ width: progressPercent + '%' }">
-          <div class="spark-head">🔥</div>
+      <div class="progress-container">
+        <div class="progress-line-bg">
+          <div class="progress-line-active" :style="{ width: progressPercent + '%' }">
+            <div class="glowing-dot"></div> </div>
         </div>
       </div>
 
       <div class="action-area">
-        <div class="join-btn" @click="showQR = true">
-          <span class="plus">+</span> 等待更多火种汇入
+        <div class="glass-btn" @click="showQR = true">
+          <span class="plus">+</span> 汇入火种
         </div>
       </div>
     </div>
@@ -84,8 +76,7 @@ const randomStyle = () => {
       <div class="modal-content">
         <h3>注入火种</h3>
         <img src="/wechat-pay.jpg" alt="捐赠二维码" class="qr-img">
-        <p>赞赏时请备注【昵称 + 寄语】</p>
-        <p class="sub-text">或支付后邮件联系上墙</p>
+        <p style="color:#888; font-size: 13px;">请备注【昵称 + 寄语】</p>
         <button class="close-btn" @click="showQR = false">关闭</button>
       </div>
     </div>
@@ -96,246 +87,179 @@ const randomStyle = () => {
 /* 全屏容器 */
 .spark-universe {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  /* 背景优化：更深邃的黑 */
-  background: radial-gradient(circle at center bottom, #1b1b1b 0%, #000000 100%);
-  z-index: 200; /* 确保盖住导航栏 */
+  top: 0; left: 0; width: 100vw; height: 100vh;
+  background: #000; /* 纯黑背景，更显深邃 */
+  z-index: 200;
   color: #fff;
-  display: flex;
-  flex-direction: column;
+  display: flex; flex-direction: column;
   overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
-/* 返回首页按钮 */
+/* 极简返回键 */
 .back-home {
-  position: absolute;
-  top: 20px;
-  left: 20px;
-  color: rgba(255, 255, 255, 0.6);
+  position: absolute; top: 24px; left: 24px;
+  color: rgba(255,255,255,0.4);
   text-decoration: none;
   font-size: 14px;
-  display: flex;
-  align-items: center;
-  padding: 8px 16px;
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 20px;
-  transition: all 0.3s;
+  letter-spacing: 1px;
+  transition: 0.3s;
   z-index: 300;
 }
-.back-home:hover {
-  background: rgba(255,255,255,0.1);
-  color: #fff;
-  border-color: rgba(255,255,255,0.4);
-}
-.arrow { margin-right: 5px; font-weight: bold; }
+.back-home:hover { color: #fff; transform: translateX(-3px); }
 
 /* 头部区域 */
 .header-section {
-  padding-top: 80px; /* 留出顶部空间 */
+  padding-top: 10vh; /* 稍微往下压一点 */
   text-align: center;
   position: relative;
   z-index: 10;
-  background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent); /* 顶部渐变遮罩 */
-  padding-bottom: 20px;
 }
 
+/* 标题：极细、大间距 */
 .title {
-  font-size: 2.8rem;
-  font-weight: 900;
-  letter-spacing: 6px;
-  /* 标题渐变色优化：红金渐变 */
-  background: linear-gradient(to right, #ff3333, #ffcc33);
-  -webkit-background-clip: text;
-  color: transparent;
-  margin: 0;
-  text-shadow: 0 5px 15px rgba(210, 43, 43, 0.3);
+  font-size: 2rem;
+  font-weight: 200; /* 极细 */
+  letter-spacing: 12px; /* 宽间距 */
+  color: #fff;
+  margin: 0 0 20px 0;
+  opacity: 0.9;
+  text-shadow: 0 0 20px rgba(210, 43, 43, 0.4); /* 红光晕 */
 }
 
+/* 文案：宋体、优雅 */
+.intro-box {
+  margin-bottom: 30px;
+  padding: 0 20px;
+}
 .intro-text {
+  font-family: "Songti SC", "SimSun", serif; /* 宋体 */
   font-size: 15px;
-  color: #aaa;
-  line-height: 1.6;
-  margin: 20px auto;
-  max-width: 600px;
+  line-height: 1.8;
+  color: rgba(255,255,255,0.6);
   font-weight: 300;
 }
 
+/* 数据统计 */
 .time-stats {
-  font-size: 13px;
-  color: #666;
-  margin-bottom: 15px;
-  font-family: monospace; /* 等宽字体显示数字更有科技感 */
+  font-size: 12px;
+  color: #555;
+  margin-bottom: 25px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
 }
-.time-stats strong { color: #d22b2b; font-size: 16px; margin: 0 4px; }
-.divider { margin: 0 10px; opacity: 0.2; }
+.num { color: #d22b2b; font-family: monospace; font-size: 14px; margin: 0 3px; }
+.divider { margin: 0 8px; color: #333; }
 
-/* 进度条 */
-.progress-bar-bg {
-  width: 90%;
-  max-width: 700px;
-  height: 2px; /* 极细线，更精致 */
+/* 极细进度条 */
+.progress-container {
+  width: 100%; display: flex; justify-content: center;
+  margin-bottom: 40px;
+}
+.progress-line-bg {
+  width: 280px; /* 短一点更精致 */
+  height: 1px; /* 极细线 */
   background: rgba(255,255,255,0.1);
-  margin: 0 auto 30px auto;
   position: relative;
 }
-
-.progress-bar-fill {
+.progress-line-active {
   height: 100%;
   background: #d22b2b;
   position: relative;
-  box-shadow: 0 0 8px #d22b2b;
+  box-shadow: 0 0 10px rgba(210,43,43,0.5);
 }
 
-.spark-head {
+/* 发光粒子替代 Emoji */
+.glowing-dot {
   position: absolute;
-  right: -8px;
-  top: -11px;
-  font-size: 16px;
-}
-
-/* 按钮区域 */
-.action-area {
-  display: flex;
-  justify-content: center;
-  margin-top: 10px;
-}
-
-.join-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 24px;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.15);
-  border-radius: 4px; /* 稍微方一点，更严肃 */
-  color: #ccc;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.3s;
-  /* 去掉了之前的 float 动画，现在是静止的 */
-}
-
-.join-btn:hover {
-  background: rgba(210, 43, 43, 0.15);
-  border-color: #d22b2b;
-  color: #fff;
-  box-shadow: 0 0 20px rgba(210, 43, 43, 0.2);
-}
-
-/* 星火区域 */
-.sparks-field {
-  flex: 1; /* 占满剩余高度 */
-  display: flex;
-  align-items: flex-end; /* 星火沉底 */
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 40px; /* 间距拉大 */
-  padding: 0 40px 80px 40px;
-  perspective: 1000px; /* 增加一点3D透视感 */
-}
-
-.spark-item {
-  position: relative;
-  width: 8px;
-  height: 8px;
-  cursor: pointer;
-}
-
-.fire-core {
-  width: 100%;
-  height: 100%;
+  right: -2px; top: -2px;
+  width: 5px; height: 5px;
   background: #fff;
   border-radius: 50%;
-  /* 火光更强烈 */
-  box-shadow: 0 0 8px #ffaa00, 0 0 15px #ff3333;
-  opacity: 0.8;
-  animation: flicker 4s infinite alternate ease-in-out;
+  box-shadow: 0 0 8px #fff, 0 0 15px #d22b2b;
 }
 
-.spark-item:hover .fire-core {
-  transform: scale(2);
-  background: #ffcc00;
-  box-shadow: 0 0 20px #ffaa00, 0 0 40px #ff3333;
-  opacity: 1;
+/* 磨砂玻璃按钮 */
+.glass-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 10px 30px;
+  border-radius: 50px; /* 胶囊圆角 */
+  background: rgba(255,255,255,0.03); /* 极淡背景 */
+  border: 1px solid rgba(255,255,255,0.08); /* 极细边框 */
+  backdrop-filter: blur(10px); /* 磨砂效果 */
+  color: rgba(255,255,255,0.7);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.4s ease;
+  letter-spacing: 1px;
+}
+.glass-btn:hover {
+  background: rgba(210, 43, 43, 0.1);
+  border-color: rgba(210, 43, 43, 0.3);
+  color: #fff;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 20px rgba(0,0,0,0.5);
 }
 
-/* 卡片样式 */
+/* 星火区 */
+.sparks-field {
+  flex: 1;
+  display: flex; align-items: flex-end; justify-content: center;
+  flex-wrap: wrap; gap: 50px;
+  padding-bottom: 80px;
+}
+.spark-item { position: relative; width: 6px; height: 6px; cursor: pointer; }
+.fire-core {
+  width: 100%; height: 100%;
+  background: #fff; border-radius: 50%;
+  box-shadow: 0 0 4px #fff, 0 0 10px #d22b2b;
+  opacity: 0.6;
+  animation: breathe 4s infinite ease-in-out;
+}
+.spark-item:hover .fire-core { transform: scale(1.5); opacity: 1; background: #ffaaaa; }
+
+/* 悬浮卡片微调 */
 .spark-card {
-  position: absolute;
-  bottom: 25px;
-  left: 50%;
+  position: absolute; bottom: 20px; left: 50%;
   transform: translateX(-50%) translateY(10px);
-  background: rgba(10, 10, 10, 0.95);
-  border: 1px solid #333;
-  padding: 12px 16px;
-  border-radius: 6px;
+  background: rgba(0,0,0,0.8);
+  border: 1px solid #222;
+  padding: 8px 12px;
+  border-radius: 4px;
   width: max-content;
-  max-width: 200px;
-  text-align: center;
-  opacity: 0;
-  visibility: hidden;
-  transition: all 0.3s ease;
+  opacity: 0; visibility: hidden;
+  transition: all 0.3s;
   pointer-events: none;
-  z-index: 20;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.8);
 }
-.spark-item:hover .spark-card {
-  opacity: 1;
-  visibility: visible;
-  transform: translateX(-50%) translateY(0);
-}
-.donor-name { color: #ff6b6b; font-size: 12px; margin-bottom: 4px; letter-spacing: 1px; }
-.donor-msg { color: #fff; font-size: 14px; font-weight: bold; }
+.spark-item:hover .spark-card { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0); }
+.donor-name { font-size: 12px; color: #888; margin-bottom: 2px; }
+.donor-msg { font-size: 13px; color: #eee; }
 
 /* 弹窗 */
 .qr-modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
   background: rgba(0,0,0,0.9);
-  backdrop-filter: blur(8px);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 500;
+  display: flex; justify-content: center; align-items: center; z-index: 500;
+  backdrop-filter: blur(5px);
 }
 .modal-content {
-  background: #111;
-  border: 1px solid #333;
-  padding: 40px;
-  border-radius: 12px;
-  text-align: center;
-  box-shadow: 0 0 50px rgba(0,0,0,1);
+  background: #111; border: 1px solid #333;
+  padding: 30px; border-radius: 12px; text-align: center;
 }
-.qr-img { width: 220px; border-radius: 8px; margin: 20px 0; opacity: 0.9; }
+.qr-img { width: 200px; margin: 20px 0; opacity: 0.9; border-radius: 8px; }
 .close-btn {
-  margin-top: 20px;
-  background: transparent;
-  border: 1px solid #444;
-  color: #666;
-  padding: 6px 20px;
-  border-radius: 20px;
-  cursor: pointer;
-  transition: 0.2s;
+  background: none; border: 1px solid #444; color: #666;
+  padding: 6px 20px; border-radius: 20px; cursor: pointer; margin-top: 15px;
 }
 .close-btn:hover { border-color: #fff; color: #fff; }
 
-@keyframes flicker {
-  0% { opacity: 0.5; transform: scale(0.9); }
-  50% { opacity: 0.8; transform: scale(1.0); }
-  100% { opacity: 1; transform: scale(1.1); }
-}
+@keyframes breathe { 0%,100%{opacity:0.4} 50%{opacity:0.8} }
 
-/* 移动端适配 */
+/* 移动端特殊优化 */
 @media (max-width: 768px) {
-  .title { font-size: 1.8rem; }
-  .intro-text { font-size: 13px; padding: 0 20px; }
-  .progress-bar-bg { width: 85%; }
-  .back-home { top: 15px; left: 15px; font-size: 12px; padding: 6px 12px; }
+  .title { font-size: 1.4rem; letter-spacing: 6px; }
+  .intro-text { font-size: 13px; padding: 0 30px; } /* 增加内边距防止文字贴边 */
+  .progress-line-bg { width: 200px; }
+  .glass-btn { padding: 8px 24px; font-size: 12px; }
 }
 </style>
