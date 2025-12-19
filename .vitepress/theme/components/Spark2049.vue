@@ -18,12 +18,10 @@ const activeIndex = ref(-1)
 
 const randomStyle = () => {
   const delay = Math.random() * 2 + 's'
-  // 稍微调大一点火种，确保手机上能看见
   const size = 0.9 + Math.random() * 0.6 
   return { animationDelay: delay, transform: `scale(${size})` }
 }
 
-// 手机交互
 const toggleSpark = (index, event) => {
   event.stopPropagation()
   activeIndex.value = activeIndex.value === index ? -1 : index
@@ -97,10 +95,9 @@ const closeAll = () => activeIndex.value = -1
 </template>
 
 <style scoped>
-/* 全屏容器：使用 100dvh 适配手机浏览器地址栏 */
 .spark-universe {
   position: fixed; top: 0; left: 0; width: 100vw; 
-  height: 100vh; height: 100dvh; /* 核心修复：适配移动端高度 */
+  height: 100vh; height: 100dvh; 
   background: #000;
   z-index: 200; color: #fff; display: flex; flex-direction: column; overflow: hidden;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -113,17 +110,13 @@ const closeAll = () => activeIndex.value = -1
 }
 .back-home:hover { color: #fff; }
 
-/* --- 头部区域：强制居中修复 --- */
 .header-section {
-  padding-top: 15vh; /* 稍微下移，视觉更平衡 */
+  padding-top: 15vh;
   width: 100%;
-  display: flex;       /* 开启 Flex 布局 */
-  flex-direction: column; 
-  align-items: center; /* 核心修复：水平绝对居中 */
+  display: flex; flex-direction: column; align-items: center; 
   position: relative; z-index: 10;
 }
 
-/* 标题：加大一点，更醒目 */
 .title {
   font-size: 2.4rem; font-weight: 200; letter-spacing: 8px; color: #fff;
   margin: 0 0 15px 0;
@@ -131,71 +124,49 @@ const closeAll = () => activeIndex.value = -1
   text-align: center;
 }
 
-/* 文案 */
-.intro-box {
-  display: flex; justify-content: center; margin-bottom: 30px;
-}
+.intro-box { display: flex; justify-content: center; margin-bottom: 30px; }
 .intro-text {
   font-family: "Songti SC", "SimSun", serif; font-size: 15px; letter-spacing: 2px;
-  color: rgba(255,255,255,0.7); font-weight: 300;
-  text-align: center;
+  color: rgba(255,255,255,0.7); font-weight: 300; text-align: center;
 }
 
-/* 统计文字 */
 .time-stats {
   font-size: 12px; color: #ccc; margin-bottom: 25px;
-  letter-spacing: 1px;
-  display: flex; justify-content: center; align-items: center;
+  letter-spacing: 1px; display: flex; justify-content: center; align-items: center;
 }
 .divider { margin: 0 10px; color: #444; }
 
-/* 进度条 */
-.progress-container {
-  width: 100%; display: flex; justify-content: center; margin-bottom: 35px;
-}
-.progress-line-bg {
-  width: 260px; height: 1px; background: rgba(255,255,255,0.15); position: relative;
-}
-.progress-line-active {
-  height: 100%; background: #fff; position: relative; box-shadow: 0 0 8px rgba(255,255,255,0.4);
-}
+.progress-container { width: 100%; display: flex; justify-content: center; margin-bottom: 35px; }
+.progress-line-bg { width: 260px; height: 1px; background: rgba(255,255,255,0.15); position: relative; }
+.progress-line-active { height: 100%; background: #fff; position: relative; box-shadow: 0 0 8px rgba(255,255,255,0.4); }
 .glowing-dot {
   position: absolute; right: -2px; top: -2px; width: 5px; height: 5px; background: #fff; border-radius: 50%;
   box-shadow: 0 0 5px #fff, 0 0 10px #ff3333;
 }
 
-/* 按钮 */
 .glass-btn {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 8px 28px; border-radius: 50px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
   backdrop-filter: blur(10px); color: rgba(255,255,255,0.7); font-size: 13px; cursor: pointer; transition: all 0.4s ease; letter-spacing: 1px;
 }
-.glass-btn:hover {
-  background: rgba(255, 50, 50, 0.15); border-color: rgba(255, 50, 50, 0.3); color: #fff; transform: translateY(-1px);
-}
+.glass-btn:hover { background: rgba(255, 50, 50, 0.15); border-color: rgba(255, 50, 50, 0.3); color: #fff; transform: translateY(-1px); }
 
-/* --- 底部星火区：核心修复 --- */
 .sparks-field {
   flex: 1; display: flex; align-items: flex-end; justify-content: center;
   flex-wrap: wrap; gap: 50px; 
-  /* 核心修复：底部增加足够边距，防止被手机Home条遮挡，并向上托举 */
   padding-bottom: calc(100px + env(safe-area-inset-bottom)); 
   perspective: 500px;
 }
 .spark-item { position: relative; width: 14px; height: 12px; cursor: pointer; }
 
-/* 火种核心：更亮，更显眼 */
 .fire-core {
   width: 100%; height: 100%;
   border-radius: 50% 50% 40% 40% / 60% 60% 40% 40%;
-  /* 调亮颜色，防止在手机屏幕上太暗 */
   background: radial-gradient(circle at center bottom, #fff 20%, #ffcc00 50%, #ff3300 80%, #660000 100%);
   box-shadow: 0 0 6px #ffaa00, 0 0 15px #ff4400, 0 0 30px rgba(210, 43, 43, 0.6);
-  opacity: 1; /* 保持不透明，只做缩放呼吸 */
-  animation: breathe 3s infinite ease-in-out alternate;
+  opacity: 1; animation: breathe 3s infinite ease-in-out alternate;
   position: relative; transition: transform 0.3s;
 }
-
 .fire-core::after {
   content: ''; position: absolute; top: -40%; left: 20%; width: 60%; height: 60%;
   background: radial-gradient(ellipse at center bottom, rgba(255,220,0,0.8) 0%, rgba(255,50,0,0) 70%);
@@ -203,25 +174,45 @@ const closeAll = () => activeIndex.value = -1
 }
 
 .spark-item:hover .fire-core, .spark-item.is-active .fire-core { 
-  transform: scale(1.4); 
-  box-shadow: 0 0 15px #fff, 0 0 30px #ff5500, 0 0 60px #ff0000;
+  transform: scale(1.4); box-shadow: 0 0 15px #fff, 0 0 30px #ff5500, 0 0 60px #ff0000;
 }
 
 @keyframes breathe { 0% { transform: scale(0.9); filter: brightness(0.9); } 100% { transform: scale(1.1); filter: brightness(1.2); } }
 @keyframes rise { 0% { transform: translateY(0) scaleX(1); opacity: 0.5; } 100% { transform: translateY(-8px) scaleX(0.5); opacity: 0; } }
 
-/* 寄语卡片 */
+/* --- 核心优化：更精致的迷你卡片 --- */
 .spark-card {
-  position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%) translateY(10px);
+  position: absolute; 
+  bottom: 45px; /* 稍微往上提一点 */
+  left: 50%; transform: translateX(-50%) translateY(10px);
   background: rgba(20, 0, 0, 0.95); border: 1px solid #633;
-  padding: 10px 14px; border-radius: 4px; width: max-content;
+  /* 减小内边距，更紧凑 */
+  padding: 8px 12px; 
+  border-radius: 6px; 
+  width: max-content;
+  max-width: 200px; /* 防止文字太长撑爆 */
   opacity: 0; visibility: hidden; transition: all 0.2s; z-index: 50; pointer-events: none;
+  backdrop-filter: blur(4px); /* 增加磨砂感 */
 }
 .spark-item:hover .spark-card, .spark-item.is-active .spark-card { 
   opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0);
 }
-.donor-name { font-size: 12px; color: #eaa; margin-bottom: 3px; }
-.donor-msg { font-size: 14px; color: #fff; font-family: "Songti SC", serif; }
+
+/* 名字：极小，粉色辅助色 */
+.donor-name { 
+  font-size: 10px; /* 改小 */
+  color: #eaa; 
+  margin-bottom: 2px;
+  opacity: 0.8;
+}
+
+/* 寄语：标准小字，清晰 */
+.donor-msg { 
+  font-size: 12px; /* 改小 */
+  color: #fff; 
+  font-family: "Songti SC", serif; 
+  line-height: 1.4;
+}
 
 /* 弹窗 */
 .qr-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; justify-content: center; align-items: center; z-index: 500; backdrop-filter: blur(5px); }
@@ -230,15 +221,11 @@ const closeAll = () => activeIndex.value = -1
 .close-btn { background: none; border: 1px solid #444; color: #666; padding: 6px 20px; border-radius: 20px; cursor: pointer; margin-top: 15px; }
 .close-btn:hover { border-color: #fff; color: #fff; }
 
-/* 移动端适配 */
 @media (max-width: 768px) {
   .header-section { padding-top: 18vh; }
   .title { font-size: 1.8rem; letter-spacing: 5px; }
   .intro-text { font-size: 14px; }
   .progress-line-bg { width: 200px; }
-  /* 确保手机上文字绝对居中 */
-  .intro-box, .time-stats, .progress-container, .action-area {
-    display: flex; justify-content: center;
-  }
+  .intro-box, .time-stats, .progress-container, .action-area { display: flex; justify-content: center; }
 }
 </style>
