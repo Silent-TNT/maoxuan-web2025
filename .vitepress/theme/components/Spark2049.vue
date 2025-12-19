@@ -1,19 +1,20 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
 import donors from '../../donors.json'
 
 // --- 1. 时间计算逻辑 ---
-const startDate = new Date('2025-12-20') // 建站日期（你可以改成今天）
-const targetDate = new Date('2049-10-01') // 目标：建国百年
-const today = ref(new Date())
+// 修正起始时间为 2025-12-19
+const startDate = new Date('2025-12-19')
+const targetDate = new Date('2049-10-01')
+const today = new Date()
 
-// 计算天数
-const daysRun = Math.floor((today.value - startDate) / (1000 * 60 * 60 * 24))
-const daysLeft = Math.ceil((targetDate - today.value) / (1000 * 60 * 60 * 24))
+// 计算天数（向上取整，避免显示 -1 天）
+const daysRun = Math.max(1, Math.ceil((today - startDate) / (1000 * 60 * 60 * 24)))
+const daysLeft = Math.ceil((targetDate - today) / (1000 * 60 * 60 * 24))
 
 // 计算进度条百分比
 const totalDuration = targetDate - startDate
-const currentDuration = today.value - startDate
+const currentDuration = today - startDate
 const progressPercent = Math.min((currentDuration / totalDuration) * 100, 100).toFixed(4)
 
 // --- 2. 交互逻辑 ---
@@ -21,18 +22,30 @@ const showQR = ref(false) // 控制二维码弹窗
 
 // 生成随机位置（模拟漫天星火的错落感）
 const randomStyle = () => {
-  const delay = Math.random() * 3 + 's' // 随机呼吸延迟
-  // 简单的错落布局，如果你想要完全随机分布，需要更复杂的JS
+  const delay = Math.random() * 3 + 's' 
+  // 随机大小，营造远近感
+  const size = 0.8 + Math.random() * 0.6 
   return {
-    animationDelay: delay
+    animationDelay: delay,
+    transform: `scale(${size})`
   }
 }
 </script>
 
 <template>
   <div class="spark-universe">
-    <div class="progress-section">
+    <a href="/" class="back-home">
+      <span class="arrow">←</span> 返回首页
+    </a>
+
+    <div class="header-section">
       <h1 class="title">星火计划 2049</h1>
+      
+      <p class="intro-text">
+        愿景：将此站维护至建国百年。这是一场跨越时空的数字长征，<br>
+        您的名字将化作星火，在此永存，共同见证燎原之时。
+      </p>
+
       <div class="time-stats">
         <span>已运行 <strong>{{ daysRun }}</strong> 天</span>
         <span class="divider">/</span>
@@ -42,6 +55,12 @@ const randomStyle = () => {
       <div class="progress-bar-bg">
         <div class="progress-bar-fill" :style="{ width: progressPercent + '%' }">
           <div class="spark-head">🔥</div>
+        </div>
+      </div>
+
+      <div class="action-area">
+        <div class="join-btn" @click="showQR = true">
+          <span class="plus">+</span> 等待更多火种汇入
         </div>
       </div>
     </div>
@@ -54,16 +73,10 @@ const randomStyle = () => {
         :style="randomStyle()"
       >
         <div class="fire-core"></div>
-        <div class="fire-glow"></div>
         <div class="spark-card">
           <div class="donor-name">@{{ donor.name }}</div>
           <div class="donor-msg">“{{ donor.message }}”</div>
         </div>
-      </div>
-
-      <div class="join-btn" @click="showQR = true">
-        <span class="plus">+</span>
-        <span class="text">等待更多火种汇入</span>
       </div>
     </div>
 
@@ -72,7 +85,7 @@ const randomStyle = () => {
         <h3>注入火种</h3>
         <img src="/wechat-pay.jpg" alt="捐赠二维码" class="qr-img">
         <p>赞赏时请备注【昵称 + 寄语】</p>
-        <p class="sub-text">或支付后邮件联系</p>
+        <p class="sub-text">或支付后邮件联系上墙</p>
         <button class="close-btn" @click="showQR = false">关闭</button>
       </div>
     </div>
@@ -80,56 +93,92 @@ const randomStyle = () => {
 </template>
 
 <style scoped>
-/* 全屏霸占样式 */
+/* 全屏容器 */
 .spark-universe {
   position: fixed;
   top: 0;
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: radial-gradient(circle at bottom, #1b0a0a 0%, #000000 100%);
-  z-index: 100; /* 覆盖在所有内容之上 */
+  /* 背景优化：更深邃的黑 */
+  background: radial-gradient(circle at center bottom, #1b1b1b 0%, #000000 100%);
+  z-index: 200; /* 确保盖住导航栏 */
   color: #fff;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  padding: 40px 20px;
-  box-sizing: border-box;
   overflow: hidden;
 }
 
-/* 顶部进度区 */
-.progress-section {
+/* 返回首页按钮 */
+.back-home {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  color: rgba(255, 255, 255, 0.6);
+  text-decoration: none;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  padding: 8px 16px;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 20px;
+  transition: all 0.3s;
+  z-index: 300;
+}
+.back-home:hover {
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+  border-color: rgba(255,255,255,0.4);
+}
+.arrow { margin-right: 5px; font-weight: bold; }
+
+/* 头部区域 */
+.header-section {
+  padding-top: 80px; /* 留出顶部空间 */
   text-align: center;
-  z-index: 2;
-  margin-top: 60px; /* 避开顶栏(如果有) */
+  position: relative;
+  z-index: 10;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent); /* 顶部渐变遮罩 */
+  padding-bottom: 20px;
 }
 
 .title {
-  font-size: 2.5rem;
-  font-weight: bold;
-  letter-spacing: 4px;
-  background: linear-gradient(to right, #ff4d4d, #ff9e9e);
+  font-size: 2.8rem;
+  font-weight: 900;
+  letter-spacing: 6px;
+  /* 标题渐变色优化：红金渐变 */
+  background: linear-gradient(to right, #ff3333, #ffcc33);
   -webkit-background-clip: text;
   color: transparent;
-  margin-bottom: 20px;
+  margin: 0;
+  text-shadow: 0 5px 15px rgba(210, 43, 43, 0.3);
+}
+
+.intro-text {
+  font-size: 15px;
+  color: #aaa;
+  line-height: 1.6;
+  margin: 20px auto;
+  max-width: 600px;
+  font-weight: 300;
 }
 
 .time-stats {
-  font-size: 14px;
-  color: #888;
+  font-size: 13px;
+  color: #666;
   margin-bottom: 15px;
+  font-family: monospace; /* 等宽字体显示数字更有科技感 */
 }
-.time-stats strong { color: #d22b2b; font-size: 18px; margin: 0 4px; }
-.divider { margin: 0 10px; opacity: 0.3; }
+.time-stats strong { color: #d22b2b; font-size: 16px; margin: 0 4px; }
+.divider { margin: 0 10px; opacity: 0.2; }
 
+/* 进度条 */
 .progress-bar-bg {
-  width: 100%;
-  max-width: 800px;
-  height: 4px;
+  width: 90%;
+  max-width: 700px;
+  height: 2px; /* 极细线，更精致 */
   background: rgba(255,255,255,0.1);
-  margin: 0 auto;
-  border-radius: 2px;
+  margin: 0 auto 30px auto;
   position: relative;
 }
 
@@ -137,153 +186,156 @@ const randomStyle = () => {
   height: 100%;
   background: #d22b2b;
   position: relative;
-  box-shadow: 0 0 10px #d22b2b;
+  box-shadow: 0 0 8px #d22b2b;
 }
 
 .spark-head {
   position: absolute;
-  right: -10px;
-  top: -12px;
-  font-size: 20px;
-  filter: drop-shadow(0 0 5px #ff4d4d);
+  right: -8px;
+  top: -11px;
+  font-size: 16px;
 }
 
-/* 底部火种区 */
-.sparks-field {
-  flex: 1;
+/* 按钮区域 */
+.action-area {
   display: flex;
-  align-items: flex-end; /* 沉底 */
+  justify-content: center;
+  margin-top: 10px;
+}
+
+.join-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 24px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 4px; /* 稍微方一点，更严肃 */
+  color: #ccc;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s;
+  /* 去掉了之前的 float 动画，现在是静止的 */
+}
+
+.join-btn:hover {
+  background: rgba(210, 43, 43, 0.15);
+  border-color: #d22b2b;
+  color: #fff;
+  box-shadow: 0 0 20px rgba(210, 43, 43, 0.2);
+}
+
+/* 星火区域 */
+.sparks-field {
+  flex: 1; /* 占满剩余高度 */
+  display: flex;
+  align-items: flex-end; /* 星火沉底 */
   justify-content: center;
   flex-wrap: wrap;
-  gap: 30px;
-  padding-bottom: 60px;
-  max-width: 1200px;
-  margin: 0 auto;
-  position: relative;
+  gap: 40px; /* 间距拉大 */
+  padding: 0 40px 80px 40px;
+  perspective: 1000px; /* 增加一点3D透视感 */
 }
 
-/* 单个火种 */
 .spark-item {
   position: relative;
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
   cursor: pointer;
 }
 
-/* 火光核心 */
 .fire-core {
   width: 100%;
   height: 100%;
   background: #fff;
   border-radius: 50%;
-  box-shadow: 0 0 10px #ffaa00, 0 0 20px #ff4d4d;
-  animation: flicker 3s infinite alternate;
-}
-
-/* 悬停卡片 */
-.spark-card {
-  position: absolute;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%) scale(0.8);
-  background: rgba(20, 20, 20, 0.9);
-  border: 1px solid #333;
-  padding: 10px 15px;
-  border-radius: 8px;
-  width: 180px;
-  text-align: center;
-  opacity: 0;
-  visibility: hidden;
-  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  pointer-events: none;
-  z-index: 10;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-}
-
-.spark-item:hover .spark-card {
-  opacity: 1;
-  visibility: visible;
-  bottom: 30px;
-  transform: translateX(-50%) scale(1);
+  /* 火光更强烈 */
+  box-shadow: 0 0 8px #ffaa00, 0 0 15px #ff3333;
+  opacity: 0.8;
+  animation: flicker 4s infinite alternate ease-in-out;
 }
 
 .spark-item:hover .fire-core {
-  transform: scale(1.5);
-  box-shadow: 0 0 20px #ffaa00, 0 0 40px #ff4d4d;
+  transform: scale(2);
+  background: #ffcc00;
+  box-shadow: 0 0 20px #ffaa00, 0 0 40px #ff3333;
+  opacity: 1;
 }
 
-.donor-name { color: #ff9e9e; font-size: 12px; margin-bottom: 4px; }
+/* 卡片样式 */
+.spark-card {
+  position: absolute;
+  bottom: 25px;
+  left: 50%;
+  transform: translateX(-50%) translateY(10px);
+  background: rgba(10, 10, 10, 0.95);
+  border: 1px solid #333;
+  padding: 12px 16px;
+  border-radius: 6px;
+  width: max-content;
+  max-width: 200px;
+  text-align: center;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+  pointer-events: none;
+  z-index: 20;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+}
+.spark-item:hover .spark-card {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+.donor-name { color: #ff6b6b; font-size: 12px; margin-bottom: 4px; letter-spacing: 1px; }
 .donor-msg { color: #fff; font-size: 14px; font-weight: bold; }
 
-/* 汇入按钮 */
-.join-btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 24px;
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.2);
-  border-radius: 30px;
-  cursor: pointer;
-  transition: all 0.3s;
-  margin-left: 20px;
-  margin-bottom: -5px; /* 对齐微调 */
-  animation: float 4s infinite ease-in-out;
-}
-
-.join-btn:hover {
-  background: rgba(210, 43, 43, 0.2);
-  border-color: #d22b2b;
-  box-shadow: 0 0 15px rgba(210, 43, 43, 0.3);
-}
-
-/* 弹窗样式 */
+/* 弹窗 */
 .qr-modal {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0,0,0,0.8);
-  backdrop-filter: blur(5px);
+  background: rgba(0,0,0,0.9);
+  backdrop-filter: blur(8px);
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 200;
-  animation: fadeIn 0.3s;
+  z-index: 500;
 }
-
 .modal-content {
-  background: #1a1a1a;
-  padding: 30px;
+  background: #111;
+  border: 1px solid #333;
+  padding: 40px;
   border-radius: 12px;
   text-align: center;
-  border: 1px solid #333;
-  box-shadow: 0 20px 50px rgba(0,0,0,0.7);
-  max-width: 90%;
+  box-shadow: 0 0 50px rgba(0,0,0,1);
 }
-
-.qr-img { width: 250px; border-radius: 8px; margin: 15px 0; }
-.sub-text { font-size: 12px; color: #666; margin-top: 5px; }
+.qr-img { width: 220px; border-radius: 8px; margin: 20px 0; opacity: 0.9; }
 .close-btn {
   margin-top: 20px;
   background: transparent;
   border: 1px solid #444;
-  color: #888;
+  color: #666;
   padding: 6px 20px;
-  border-radius: 4px;
+  border-radius: 20px;
   cursor: pointer;
+  transition: 0.2s;
 }
 .close-btn:hover { border-color: #fff; color: #fff; }
 
-/* 动画定义 */
 @keyframes flicker {
-  0% { opacity: 0.6; transform: scale(0.9); }
+  0% { opacity: 0.5; transform: scale(0.9); }
+  50% { opacity: 0.8; transform: scale(1.0); }
   100% { opacity: 1; transform: scale(1.1); }
 }
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-5px); }
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+  .title { font-size: 1.8rem; }
+  .intro-text { font-size: 13px; padding: 0 20px; }
+  .progress-bar-bg { width: 85%; }
+  .back-home { top: 15px; left: 15px; font-size: 12px; padding: 6px 12px; }
 }
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 </style>
