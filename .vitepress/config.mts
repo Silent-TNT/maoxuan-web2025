@@ -2,7 +2,7 @@ import { defineConfig } from 'vitepress'
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
-  title: "毛泽东选集在线阅读-极简无广告版",
+  title: "毛泽东选集在线阅读",
   description: "提供毛泽东选集第一卷至第四卷的完整在线阅读。支持手机平板适配，极简纯净，无广告干扰，随时随地学习毛选。",
   head: [
     ['link', { rel: 'icon', href: '/logo.png' }]
