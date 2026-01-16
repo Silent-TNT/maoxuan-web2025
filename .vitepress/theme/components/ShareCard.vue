@@ -181,18 +181,17 @@ onUnmounted(() => {
   pointer-events: none; opacity: 0.4; z-index: 0;
 }
 
-/* --- 核心修改点：调整引号位置 --- */
+/* --- 核心修改点：平衡上下间距 --- */
 .poster-header {
   font-size: 100px;
   color: #d22b2b;
-  /* 1. 增加行高，给顶部留出空间，防止被切 */
   line-height: 1.0; 
   font-family: serif;
   opacity: 0.9;
-  /* 2. 增加上边距，整体下移 */
-  margin-top: 10px;
-  /* 3. 微调下边距，平衡整体结构 */
-  margin-bottom: 30px; 
+  /* 1. 大幅增加上边距，往下推 */
+  margin-top: 35px;
+  /* 2. 大幅减小下边距，拉近正文 */
+  margin-bottom: 10px; 
 }
 
 .poster-body {
