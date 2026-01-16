@@ -31,7 +31,7 @@ const handleSelection = () => {
   }
 }
 
-// 2. 生成图片 (核心修复点)
+// 2. 生成图片
 const generateCard = async () => {
   if (!html2canvas) {
     try {
@@ -47,21 +47,18 @@ const generateCard = async () => {
   generating.value = true
   cardImage.value = null
 
-  // 🛑 关键修复：先等待弹窗 DOM 渲染出来
   await nextTick()
   
-  // ✅ 然后再去获取元素，这时候它一定存在了
   const element = document.getElementById('poster-node')
   
   if (element) {
-    // 临时显示出来以便截图
     element.style.display = 'block'
     
     try {
       const canvas = await html2canvas(element, {
         useCORS: true,
         backgroundColor: '#1a1a1a',
-        scale: 3, // 提升清晰度到3倍
+        scale: 3,
         scrollY: 0,
         scrollX: 0,
       })
@@ -69,12 +66,10 @@ const generateCard = async () => {
     } catch (e) {
       console.error('生成失败', e)
     } finally {
-      // 无论成功失败，都要关闭加载状态，并隐藏原始DOM
       generating.value = false
       element.style.display = 'none'
     }
   } else {
-    // 如果万一没找到元素，也要关闭加载圈
     console.error("未找到海报元素")
     generating.value = false
   }
@@ -144,7 +139,7 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-/* 样式保持不变 */
+/* ... 其他样式保持不变 ... */
 .float-btn {
   position: absolute; z-index: 1000;
   background: #d22b2b; color: #fff; padding: 8px 16px;
@@ -186,9 +181,20 @@ onUnmounted(() => {
   pointer-events: none; opacity: 0.4; z-index: 0;
 }
 
+/* --- 核心修改点：调整引号位置 --- */
 .poster-header {
-  font-size: 100px; color: #d22b2b; line-height: 0.4; font-family: serif; opacity: 0.9; margin-bottom: 35px;
+  font-size: 100px;
+  color: #d22b2b;
+  /* 1. 增加行高，给顶部留出空间，防止被切 */
+  line-height: 1.0; 
+  font-family: serif;
+  opacity: 0.9;
+  /* 2. 增加上边距，整体下移 */
+  margin-top: 10px;
+  /* 3. 微调下边距，平衡整体结构 */
+  margin-bottom: 30px; 
 }
+
 .poster-body {
   font-size: 16px; line-height: 1.8; text-align: justify;
   margin-bottom: 40px; font-weight: 300; z-index: 1; position: relative;
