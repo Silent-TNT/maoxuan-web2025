@@ -12,16 +12,16 @@ const cardImage = ref(null)
 
 // 1. 监听选词
 const handleSelection = () => {
+  if (showModal.value) return
+
   const selection = window.getSelection()
   const text = selection.toString().trim()
 
-  // 限制：只有选中 5~300 个字时才显示按钮
-  if (text.length > 5 && text.length < 300) { 
+  if (text.length > 5 && text.length < 400) { 
     quote.value = text
     const range = selection.getRangeAt(0)
     const rect = range.getBoundingClientRect()
     
-    // 计算按钮位置：显示在选中文本的上方中间
     buttonStyle.value = {
       top: `${window.scrollY + rect.top - 45}px`,
       left: `${rect.left + (rect.width / 2) - 50}px`
@@ -32,9 +32,8 @@ const handleSelection = () => {
   }
 }
 
-// 2. 生成图片核心逻辑
+// 2. 生成图片
 const generateCard = async () => {
-  // 动态导入 html2canvas，防止构建时报错
   if (!html2canvas) {
     html2canvas = (await import('html2canvas')).default
   }
@@ -44,35 +43,44 @@ const generateCard = async () => {
   generating.value = true
   cardImage.value = null
 
-  await nextTick() // 等待 DOM 渲染
-  
   const element = document.getElementById('poster-node')
+  if (element) {
+    element.style.display = 'block'
+  }
+  
+  await nextTick()
+  
   if (element) {
     try {
       const canvas = await html2canvas(element, {
         useCORS: true,
-        backgroundColor: '#1a1a1a', // 强制背景色
-        scale: 2 // 2倍清晰度
+        backgroundColor: '#1a1a1a',
+        scale: 2,
+        scrollY: 0,
+        scrollX: 0,
       })
       cardImage.value = canvas.toDataURL('image/png')
     } catch (e) {
       console.error('生成失败', e)
     } finally {
       generating.value = false
+      element.style.display = 'none'
     }
   }
 }
 
 const closeModal = () => {
   showModal.value = false
-  window.getSelection().removeAllRanges() // 取消选区
+  cardImage.value = null
+  window.getSelection().removeAllRanges()
 }
 
 onMounted(() => {
-  // 电脑端监听鼠标松开
   document.addEventListener('mouseup', handleSelection)
-  // 手机端监听触摸结束
-  document.addEventListener('touchend', () => setTimeout(handleSelection, 100))
+  document.addEventListener('touchend', (e) => {
+    if (e.target.closest('.float-btn')) return
+    setTimeout(handleSelection, 100)
+  })
 })
 
 onUnmounted(() => {
@@ -96,24 +104,27 @@ onUnmounted(() => {
     <div v-if="showModal" class="modal-mask" @click.self="closeModal">
       <div class="modal-content">
         
-        <div id="poster-node" class="poster-card">
+        <div id="poster-node" class="poster-card" style="display: none;">
           <div class="poster-header">“</div>
           <div class="poster-body">{{ quote }}</div>
           <div class="poster-footer">
             <div class="footer-info">
               <div class="author">毛泽东选集</div>
-              <div class="site">xuemaoxuan.com</div>
+              <div class="site">xuemaoxuan.com · 学毛选</div>
             </div>
-            <img src="/mobile-qr.png" class="qr-code" crossOrigin="anonymous">
           </div>
           <div class="noise-bg"></div>
         </div>
 
-        <div class="result-area">
-          <h3 class="tip-text">长按保存图片分享</h3>
-          <div v-if="generating" class="loading">正在绘制海报...</div>
-          <img v-if="cardImage" :src="cardImage" class="final-img" alt="分享卡片">
+        <div class="result-area" v-if="!generating && cardImage">
+          <h3 class="tip-text">长按图片保存分享</h3>
+          <img :src="cardImage" class="final-img" alt="分享卡片">
           <button class="close-btn" @click="closeModal">关闭</button>
+        </div>
+        
+        <div v-if="generating" class="loading-box">
+          <div class="loading-spinner"></div>
+          <p>正在绘制精美卡片...</p>
         </div>
 
       </div>
@@ -128,11 +139,9 @@ onUnmounted(() => {
   background: #d22b2b; color: #fff; padding: 8px 16px;
   border-radius: 50px; font-size: 13px; font-weight: bold;
   cursor: pointer; box-shadow: 0 4px 15px rgba(210, 43, 43, 0.4);
-  transform: translateY(0); transition: all 0.2s;
-  pointer-events: auto;
+  transform: translateY(0); transition: all 0.2s; pointer-events: auto; user-select: none;
 }
 .float-btn:hover { transform: translateY(-3px); background: #ff4d4d; }
-/* 小三角箭头 */
 .float-btn::after {
   content: ''; position: absolute; top: 100%; left: 50%; margin-left: -6px;
   border-width: 6px; border-style: solid;
@@ -144,25 +153,23 @@ onUnmounted(() => {
   position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
   background: rgba(0,0,0,0.9); z-index: 2000;
   display: flex; justify-content: center; align-items: center;
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px); overflow: hidden; 
 }
-.modal-content { display: flex; flex-direction: column; align-items: center; max-width: 90%; }
 
-/* --- 海报设计 (黑金风格) --- */
+.modal-content {
+  display: flex; flex-direction: column; align-items: center;
+  width: 90%; max-width: 400px;
+  max-height: 90vh; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 20px 0;
+}
+
+/* --- 海报设计 --- */
 .poster-card {
-  /* 这个元素平时会被生成的图片挡住，但必须存在且可见才能截图 */
-  width: 320px; background: #1a1a1a; padding: 35px 30px;
+  width: 320px; 
+  background: #1a1a1a; padding: 35px 30px;
   border: 1px solid #333; color: #fff;
-  font-family: "Songti SC", "SimSun", serif; /* 宋体更有书卷气 */
-  position: fixed; left: -9999px; top: 0; /* 移出屏幕外进行渲染，防止闪烁 */
+  font-family: "Songti SC", "SimSun", serif;
+  margin: 0 auto; box-sizing: border-box;
 }
-/* 生成图片时临时移回来 */
-#poster-node { 
-  position: static; margin-bottom: 20px; 
-  /* 如果生成好了，就隐藏原始DOM，只显示图片 */
-  display: block;
-}
-.result-area img + #poster-node { display: none; }
 
 .noise-bg {
   position: absolute; top:0; left:0; width:100%; height:100%;
@@ -170,28 +177,45 @@ onUnmounted(() => {
   pointer-events: none; opacity: 0.4; z-index: 0;
 }
 
-.poster-header { font-size: 80px; color: #d22b2b; line-height: 0.5; font-family: serif; opacity: 0.9; margin-bottom: 20px;}
-.poster-body {
-  font-size: 19px; line-height: 1.8; text-align: justify;
-  margin-bottom: 40px; font-weight: 300; z-index: 1; position: relative;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+/* 修改点：引号放大至 100px */
+.poster-header {
+  font-size: 100px; /* 巨大的符号感 */
+  color: #d22b2b; 
+  line-height: 0.4; /* 压低行高，减少顶部留白 */
+  font-family: serif; 
+  opacity: 0.9; 
+  margin-bottom: 35px; /* 增加一点下边距，防止压到正文 */
 }
+
+/* 正文保持精致小字 */
+.poster-body {
+  font-size: 16px; 
+  line-height: 1.8; text-align: justify;
+  margin-bottom: 40px; font-weight: 300; z-index: 1; position: relative;
+  text-shadow: 0 1px 1px rgba(0,0,0,0.5);
+}
+
 .poster-footer {
-  display: flex; justify-content: space-between; align-items: flex-end;
-  border-top: 1px solid rgba(255,255,255,0.15); padding-top: 20px;
+  display: flex; justify-content: flex-start; align-items: flex-end;
+  border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px;
   z-index: 1; position: relative;
 }
-.author { font-size: 16px; font-weight: bold; color: #eee; margin-bottom: 4px; letter-spacing: 1px; }
-.site { font-size: 12px; color: #666; font-family: sans-serif; text-transform: uppercase; letter-spacing: 1px; }
-.qr-code { width: 55px; height: 55px; border-radius: 4px; border: 2px solid #fff; }
+.author { font-size: 14px; font-weight: bold; color: #eee; margin-bottom: 6px; letter-spacing: 1px; }
+.site { font-size: 11px; color: #888; font-family: sans-serif; letter-spacing: 0.5px; }
 
-.result-area { display: flex; flex-direction: column; align-items: center; }
-.tip-text { color: #fff; margin-top: 0; font-weight: normal; letter-spacing: 1px; opacity: 0.8; }
-.final-img { width: 320px; box-shadow: 0 20px 50px rgba(0,0,0,0.8); border-radius: 8px; margin-bottom: 20px; border: 1px solid #333; }
+.result-area { display: flex; flex-direction: column; align-items: center; width: 100%; }
+.tip-text { color: #fff; margin: 10px 0 20px 0; font-weight: normal; font-size: 14px; opacity: 0.8; }
+.final-img { width: 320px; max-width: 100%; box-shadow: 0 20px 50px rgba(0,0,0,0.8); border-radius: 8px; margin-bottom: 20px; border: 1px solid #333; display: block; }
 .close-btn {
   background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff;
-  padding: 8px 30px; border-radius: 50px; cursor: pointer; margin-top: 5px; transition: 0.2s;
+  padding: 8px 30px; border-radius: 50px; cursor: pointer; margin-bottom: 20px; transition: 0.2s;
 }
 .close-btn:hover { background: #fff; color: #000; }
-.loading { color: #888; margin: 20px; }
+
+.loading-box { display: flex; flex-direction: column; align-items: center; color: #888; margin-top: 50px; }
+.loading-spinner {
+  width: 30px; height: 30px; border: 3px solid rgba(255,255,255,0.1); border-top-color: #d22b2b;
+  border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
 </style>
