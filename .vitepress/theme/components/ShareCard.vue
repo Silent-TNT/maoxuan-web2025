@@ -189,7 +189,7 @@ onUnmounted(() => {
   font-family: serif;
   opacity: 0.9;
   /* 1. 大幅增加上边距，往下推 */
-  margin-top: 35px;
+  margin-top: 0px;
   /* 2. 大幅减小下边距，拉近正文 */
   margin-bottom: 10px; 
 }
