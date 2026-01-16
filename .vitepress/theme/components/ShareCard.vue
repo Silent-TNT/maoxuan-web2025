@@ -181,17 +181,20 @@ onUnmounted(() => {
   pointer-events: none; opacity: 0.4; z-index: 0;
 }
 
-/* --- 核心修改点：平衡上下间距 --- */
+/* --- 核心修改点：使用负边距 --- */
 .poster-header {
   font-size: 100px;
   color: #d22b2b;
   line-height: 1.0; 
   font-family: serif;
   opacity: 0.9;
-  /* 1. 大幅增加上边距，往下推 */
-  margin-top: 0px;
-  /* 2. 大幅减小下边距，拉近正文 */
-  margin-bottom: 10px; 
+  
+  /* 1. 顶部保留一定距离，不然太贴边了不好看 */
+  margin-top: 30px; 
+  
+  /* 2. 关键点：设置为负数！ */
+  /* 因为100px的字体底部有很大的空白，用负数抵消掉 */
+  margin-bottom: -20px; 
 }
 
 .poster-body {
