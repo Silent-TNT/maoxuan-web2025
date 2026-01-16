@@ -16,7 +16,7 @@ const handleSelection = () => {
   const selection = window.getSelection()
   const text = selection.toString().trim()
 
-  if (text.length > 5 && text.length < 400) { 
+  if (text.length > 5 && text.length < 1000) { 
     quote.value = text
     const range = selection.getRangeAt(0)
     const rect = range.getBoundingClientRect()
@@ -104,7 +104,7 @@ onUnmounted(() => {
       @mousedown.prevent="generateCard" 
       @touchstart.prevent="generateCard"
     >
-      <span class="icon">🖼️</span> 生成金句卡片
+      <span class="icon"></span> 生成金句卡片
     </div>
 
     <div v-if="showModal" class="modal-mask" @click.self="closeModal">
