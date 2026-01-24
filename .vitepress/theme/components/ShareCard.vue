@@ -1,5 +1,9 @@
 <script setup>
 import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+// 1. 引入 VitePress 的数据钩子，用来获取当前文章标题
+import { useData } from 'vitepress'
+
+const { page } = useData() // 获取当前页面数据
 
 let html2canvas = null
 const visible = ref(false)
@@ -9,14 +13,20 @@ const quote = ref('')
 const generating = ref(false)
 const cardImage = ref(null)
 
-// 1. 监听选词
+// 2. 监听选词 (包含清洗逻辑)
 const handleSelection = () => {
   if (showModal.value) return
 
   const selection = window.getSelection()
-  const text = selection.toString().trim()
+  // 先获取原始文本
+  let text = selection.toString().trim()
 
-  if (text.length > 5 && text.length < 1000) { 
+  // 🔴 核心修改：正则清洗功能
+  // 意思是：找到所有 (数字)、（数字）、[数字] 格式的内容，全部替换为空
+  // 覆盖了英文括号(1)、中文括号（1）、方括号[1]
+  text = text.replace(/(\(\d+\)|（\d+）|\[\d+\])/g, '')
+
+  if (text.length > 5 && text.length < 1500) { 
     quote.value = text
     const range = selection.getRangeAt(0)
     const rect = range.getBoundingClientRect()
@@ -31,7 +41,7 @@ const handleSelection = () => {
   }
 }
 
-// 2. 生成图片
+// 3. 生成图片
 const generateCard = async () => {
   if (!html2canvas) {
     try {
@@ -70,7 +80,6 @@ const generateCard = async () => {
       element.style.display = 'none'
     }
   } else {
-    console.error("未找到海报元素")
     generating.value = false
   }
 }
@@ -104,7 +113,7 @@ onUnmounted(() => {
       @mousedown.prevent="generateCard" 
       @touchstart.prevent="generateCard"
     >
-      <span class="icon"></span> 生成金句卡片
+      <span class="icon">🖼️</span> 生成金句卡片
     </div>
 
     <div v-if="showModal" class="modal-mask" @click.self="closeModal">
@@ -115,7 +124,7 @@ onUnmounted(() => {
           <div class="poster-body">{{ quote }}</div>
           <div class="poster-footer">
             <div class="footer-info">
-              <div class="author">毛泽东选集</div>
+              <div class="author">毛泽东选集 · {{ page.title }}</div>
               <div class="site">xuemaoxuan.com · 学毛选</div>
             </div>
           </div>
@@ -139,7 +148,7 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-/* ... 其他样式保持不变 ... */
+/* 保持原有样式不变 */
 .float-btn {
   position: absolute; z-index: 1000;
   background: #d22b2b; color: #fff; padding: 8px 16px;
@@ -181,20 +190,10 @@ onUnmounted(() => {
   pointer-events: none; opacity: 0.4; z-index: 0;
 }
 
-/* --- 核心修改点：使用负边距 --- */
 .poster-header {
-  font-size: 100px;
-  color: #d22b2b;
-  line-height: 1.0; 
-  font-family: serif;
-  opacity: 0.9;
-  
-  /* 1. 顶部保留一定距离，不然太贴边了不好看 */
-  margin-top: 30px; 
-  
-  /* 2. 关键点：设置为负数！ */
-  /* 因为100px的字体底部有很大的空白，用负数抵消掉 */
-  margin-bottom: -20px; 
+  font-size: 100px; color: #d22b2b; line-height: 1.0; 
+  font-family: serif; opacity: 0.9;
+  margin-top: 35px; margin-bottom: -20px; 
 }
 
 .poster-body {
