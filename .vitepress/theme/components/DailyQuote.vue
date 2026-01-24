@@ -5,44 +5,28 @@ import { quotes } from '../../data/quotes.js'
 const currentQuote = ref({ text: '', source: '' })
 const isAnimating = ref(false)
 
-// 随机抽取一条
 const randomize = () => {
   isAnimating.value = true
-  // 简单的随机算法
   const randomIndex = Math.floor(Math.random() * quotes.length)
   currentQuote.value = quotes[randomIndex]
-  
-  // 动画复位
-  setTimeout(() => {
-    isAnimating.value = false
-  }, 500)
+  setTimeout(() => { isAnimating.value = false }, 500)
 }
 
-onMounted(() => {
-  randomize()
-})
+onMounted(() => { randomize() })
 </script>
 
 <template>
   <div class="quote-container">
     <div class="quote-card" @click="randomize" :class="{ 'fade-in': isAnimating }">
-      <div class="border-inner"></div>
-      
       <div class="content-wrapper">
-        <div class="vertical-text main-text">
-          {{ currentQuote.text }}
-        </div>
-        <div class="vertical-text source-text">
-          {{ currentQuote.source }}
-        </div>
+        <div class="main-text">“ {{ currentQuote.text }} ”</div>
+        <div class="source-text">—— {{ currentQuote.source }}</div>
       </div>
       
-      <div class="seal">
-        <span>每日<br>一语</span>
-      </div>
+      <div class="seal">每日<br>一语</div>
     </div>
     
-    <div class="tip">点击卡片切换内容</div>
+    <div class="tip">点击卡片切换</div>
   </div>
 </template>
 
@@ -52,111 +36,106 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-top: 40px; /* 距离上方按钮的距离 */
+  margin-top: 40px;
   margin-bottom: 60px;
+  padding: 0 20px; /* 防止手机贴边 */
 }
 
 .quote-card {
   position: relative;
-  /* 竖排容器需要固定高度，宽度自适应 */
-  height: 280px; 
-  min-width: 160px;
-  max-width: 90%;
-  padding: 30px 50px;
+  width: 100%;
+  max-width: 600px; /* 限制最大宽度，电脑上不至于太宽 */
+  min-height: 140px; /* 给一个最小高度，防止跳动 */
+  padding: 30px 40px;
   
-  /* 🔴 核心样式：红色边框 + 古籍风格 */
-  border: 3px double #d22b2b; /* 双线边框，更有古风感 */
-  background-color: rgba(255, 255, 255, 0.03); /* 极淡的背景 */
+  /* 🔴 极简红框风格 */
+  border: 1px solid rgba(210, 43, 43, 0.3); /* 细红线 */
+  border-left: 4px solid #d22b2b; /* 左侧加粗，像书签 */
+  background-color: var(--vp-c-bg-soft); /* 跟随主题的柔和背景 */
   border-radius: 4px;
-  cursor: pointer;
-  transition: transform 0.3s, box-shadow 0.3s;
-  user-select: none;
   
-  /* 布局居中 */
+  cursor: pointer;
+  transition: all 0.3s ease;
+  user-select: none;
   display: flex;
-  justify-content: center;
   align-items: center;
+  justify-content: center;
 }
 
-/* 悬停效果：浮起 */
 .quote-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 10px 30px rgba(210, 43, 43, 0.15);
-  background-color: rgba(210, 43, 43, 0.05);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(210, 43, 43, 0.1);
+  border-color: rgba(210, 43, 43, 0.6);
 }
 
 .content-wrapper {
-  display: flex;
-  flex-direction: row-reverse; /* 竖排是从右向左读，所以要反转flex方向 */
-  gap: 20px;
+  text-align: center;
+  width: 100%;
 }
 
-/* 📜 核心黑科技：竖排文字 */
-.vertical-text {
-  writing-mode: vertical-rl; /* 垂直书写，从右向左 */
-  font-family: "Songti SC", "SimSun", "STSong", serif; /* 必须用宋体！ */
-  letter-spacing: 4px;
-}
-
+/* 正文：横排宋体 */
 .main-text {
-  font-size: 24px;
-  font-weight: bold;
+  font-family: "Songti SC", "SimSun", serif;
+  font-size: 20px;
+  line-height: 1.6;
   color: var(--vp-c-text-1);
-  line-height: 1.5;
+  font-weight: 500;
+  margin-bottom: 15px;
+  letter-spacing: 1px;
 }
 
+/* 来源：小字 */
 .source-text {
-  font-size: 14px;
-  color: #d22b2b; /* 来源用红色 */
+  font-size: 13px;
+  color: var(--vp-c-text-2);
   opacity: 0.8;
-  align-self: flex-end; /* 底部对齐 */
-  margin-bottom: 10px;
+  font-family: sans-serif;
 }
 
-/* 纯CSS写的印章 */
+/* 印章：放在右下角 */
 .seal {
   position: absolute;
-  bottom: 20px;
-  left: 20px;
-  width: 36px;
-  height: 36px;
-  border: 2px solid #d22b2b;
+  bottom: 15px;
+  right: 15px;
+  width: 32px;
+  height: 32px;
+  border: 1px solid #d22b2b;
   border-radius: 4px;
   color: #d22b2b;
-  font-size: 10px;
+  font-size: 9px;
   display: flex;
   justify-content: center;
   align-items: center;
   line-height: 1.1;
   text-align: center;
-  font-family: "Songti SC", serif;
-  opacity: 0.6;
-  transform: rotate(-10deg); /* 稍微歪一点，像真盖上去的 */
+  opacity: 0.5;
+  transform: rotate(-10deg);
 }
 
 .tip {
-  margin-top: 15px;
+  margin-top: 12px;
   font-size: 12px;
   color: var(--vp-c-text-3);
-  opacity: 0.6;
+  opacity: 0.5;
 }
 
 /* 切换动画 */
-.fade-in .vertical-text {
-  animation: fadeInText 0.5s ease;
+.fade-in .content-wrapper {
+  animation: fadeIn 0.4s ease;
 }
-
-@keyframes fadeInText {
-  0% { opacity: 0; transform: translateY(-10px); }
+@keyframes fadeIn {
+  0% { opacity: 0; transform: translateY(5px); }
   100% { opacity: 1; transform: translateY(0); }
 }
 
 /* 移动端适配 */
 @media (max-width: 600px) {
   .quote-card {
-    height: 220px; /* 手机上稍微矮一点 */
-    padding: 20px 30px;
+    padding: 25px 20px;
+    min-height: 120px;
   }
-  .main-text { font-size: 20px; }
+  .main-text {
+    font-size: 18px; /* 手机字号稍微小一点 */
+  }
 }
 </style>
