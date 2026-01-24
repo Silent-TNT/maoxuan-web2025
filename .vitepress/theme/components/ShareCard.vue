@@ -17,14 +17,16 @@ const handleSelection = () => {
 
   const selection = window.getSelection()
   let text = selection.toString().trim()
+  
+  // 🔍 调试：请按 F12 打开控制台，看看这里的输出
+  console.log("【调试】原始抓取文本:", text)
 
-  // 🔴 核弹级清洗正则：
-  // 1. [\(（\[【] : 匹配所有类型的左括号
-  // 2. \s* : 允许括号内有空格
-  // 3. \d+ : 匹配数字
-  // 4. [\)）\]】] : 匹配所有类型的右括号
-  // 5. |[⑴-⒇] : 额外匹配特殊序号字符 (如 ⑴, ⑵...)
-  text = text.replace(/([\(（\[【]\s*\d+\s*[\)）\]】]|[⑴-⒇])/g, '')
+  // 🔴 核弹级清洗正则 (V3.0)
+  // 逻辑：匹配 "左括号" + "任意10个以内的字符" + "数字" + "任意10个以内的字符" + "右括号"
+  // 这能通杀 (1), ( 1 ), [1], [ 1 ], （1） 等所有情况
+  text = text.replace(/([\(（\[【][^\)）\]】]{0,5}\d+[^\)）\]】]{0,5}[\)）\]】]|[⑴-⒇])/g, '')
+
+  console.log("【调试】清洗后文本:", text)
 
   if (text.length > 5 && text.length < 1500) { 
     quote.value = text
@@ -111,8 +113,7 @@ onUnmounted(() => {
       @mousedown.prevent="generateCard" 
       @touchstart.prevent="generateCard"
     >
-      <span class="icon">🖼️</span> 生成金句卡片
-    </div>
+      <span class="icon">✨</span> 生成金句卡片 </div>
 
     <div v-if="showModal" class="modal-mask" @click.self="closeModal">
       <div class="modal-content">
@@ -123,9 +124,7 @@ onUnmounted(() => {
           <div class="poster-footer">
             <div class="footer-info">
               <div class="main-author">毛泽东选集</div>
-              
               <div class="sub-source">{{ page.title }}</div>
-              
               <div class="site">xuemaoxuan.com · 学毛选</div>
             </div>
           </div>
@@ -141,7 +140,7 @@ onUnmounted(() => {
         
         <div v-if="generating" class="loading-box">
           <div class="loading-spinner"></div>
-          <p>正在绘制精美卡片...</p>
+          <p>正在绘制...</p>
         </div>
       </div>
     </div>
@@ -149,19 +148,20 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-/* 悬浮按钮及通用样式保持不变 */
+/* 悬浮按钮 */
 .float-btn {
   position: absolute; z-index: 1000;
-  background: #d22b2b; color: #fff; padding: 8px 16px;
+  /* 🔴 稍微加深了颜色，如果你看到颜色没变，说明代码没更新 */
+  background: #b91b1b; color: #fff; padding: 8px 16px;
   border-radius: 50px; font-size: 13px; font-weight: bold;
-  cursor: pointer; box-shadow: 0 4px 15px rgba(210, 43, 43, 0.4);
+  cursor: pointer; box-shadow: 0 4px 15px rgba(185, 27, 27, 0.4);
   transform: translateY(0); transition: all 0.2s; pointer-events: auto; user-select: none;
 }
 .float-btn:hover { transform: translateY(-3px); background: #ff4d4d; }
 .float-btn::after {
   content: ''; position: absolute; top: 100%; left: 50%; margin-left: -6px;
   border-width: 6px; border-style: solid;
-  border-color: #d22b2b transparent transparent transparent;
+  border-color: #b91b1b transparent transparent transparent;
 }
 
 .modal-mask {
@@ -187,4 +187,67 @@ onUnmounted(() => {
 
 .noise-bg {
   position: absolute; top:0; left:0; width:100%; height:100%;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
+  pointer-events: none; opacity: 0.4; z-index: 0;
+}
+
+.poster-header {
+  font-size: 100px; color: #d22b2b; line-height: 1.0; 
+  font-family: serif; opacity: 0.9;
+  margin-top: 35px; margin-bottom: -20px; 
+}
+
+.poster-body {
+  font-size: 16px; line-height: 1.8; text-align: justify;
+  margin-bottom: 40px; font-weight: 300; z-index: 1; position: relative;
+  text-shadow: 0 1px 1px rgba(0,0,0,0.5);
+}
+
+/* 底部信息 */
+.poster-footer {
+  display: flex; 
+  flex-direction: column; 
+  align-items: flex-start;
+  border-top: 1px solid rgba(255,255,255,0.1); 
+  padding-top: 25px;
+  z-index: 1; position: relative;
+}
+
+.footer-info { display: flex; flex-direction: column; }
+
+/* 1. 主标题 */
+.main-author {
+  font-size: 18px; font-weight: bold; color: #fff; 
+  margin-bottom: 8px; letter-spacing: 2px;
+}
+
+/* 2. 篇名 (精致化) */
+.sub-source {
+  font-size: 13px; color: #aaa; 
+  font-family: "Songti SC", "SimSun", serif; 
+  margin-bottom: 15px; letter-spacing: 1px;
+}
+
+/* 3. 网址 */
+.site {
+  font-size: 10px; color: #555; 
+  font-family: sans-serif; letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.result-area { display: flex; flex-direction: column; align-items: center; width: 100%; }
+.tip-text { color: #fff; margin: 10px 0 20px 0; font-weight: normal; font-size: 14px; opacity: 0.8; }
+.final-img { width: 320px; max-width: 100%; box-shadow: 0 20px 50px rgba(0,0,0,0.8); border-radius: 8px; margin-bottom: 20px; border: 1px solid #333; display: block; }
+.close-btn {
+  background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff;
+  padding: 8px 30px; border-radius: 50px; cursor: pointer; margin-bottom: 20px; transition: 0.2s;
+}
+.close-btn:hover { background: #fff; color: #000; }
+
+.loading-box { display: flex; flex-direction: column; align-items: center; color: #888; margin-top: 50px; }
+.loading-spinner {
+  width: 30px; height: 30px; border: 3px solid rgba(255,255,255,0.1); border-top-color: #d22b2b;
+  border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
