@@ -17,16 +17,9 @@ const handleSelection = () => {
 
   const selection = window.getSelection()
   let text = selection.toString().trim()
-  
-  // 🔍 调试：请按 F12 打开控制台，看看这里的输出
-  console.log("【调试】原始抓取文本:", text)
 
-  // 🔴 核弹级清洗正则 (V3.0)
-  // 逻辑：匹配 "左括号" + "任意10个以内的字符" + "数字" + "任意10个以内的字符" + "右括号"
-  // 这能通杀 (1), ( 1 ), [1], [ 1 ], （1） 等所有情况
+  // ✅ 强力正则清洗 (保留)
   text = text.replace(/([\(（\[【][^\)）\]】]{0,5}\d+[^\)）\]】]{0,5}[\)）\]】]|[⑴-⒇])/g, '')
-
-  console.log("【调试】清洗后文本:", text)
 
   if (text.length > 5 && text.length < 1500) { 
     quote.value = text
@@ -113,7 +106,8 @@ onUnmounted(() => {
       @mousedown.prevent="generateCard" 
       @touchstart.prevent="generateCard"
     >
-      <span class="icon">✨</span> 生成金句卡片 </div>
+      <span class="icon">✨</span> 生成金句卡片
+    </div>
 
     <div v-if="showModal" class="modal-mask" @click.self="closeModal">
       <div class="modal-content">
@@ -122,13 +116,18 @@ onUnmounted(() => {
           <div class="poster-body">{{ quote }}</div>
           
           <div class="poster-footer">
-            <div class="footer-info">
+            
+            <div class="footer-left">
               <div class="main-author">毛泽东选集</div>
               <div class="sub-source">{{ page.title }}</div>
-              <div class="site">xuemaoxuan.com · 学毛选</div>
             </div>
+
+            <div class="footer-right">
+              <div class="site">xuemaoxuan.com</div>
+              <div class="site-cn">学毛选</div>
+            </div>
+            
           </div>
-          
           <div class="noise-bg"></div>
         </div>
 
@@ -148,20 +147,19 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-/* 悬浮按钮 */
+/* 悬浮按钮 - 颜色改回品牌红 #d22b2b */
 .float-btn {
   position: absolute; z-index: 1000;
-  /* 🔴 稍微加深了颜色，如果你看到颜色没变，说明代码没更新 */
-  background: #b91b1b; color: #fff; padding: 8px 16px;
+  background: #d22b2b; color: #fff; padding: 8px 16px;
   border-radius: 50px; font-size: 13px; font-weight: bold;
-  cursor: pointer; box-shadow: 0 4px 15px rgba(185, 27, 27, 0.4);
+  cursor: pointer; box-shadow: 0 4px 15px rgba(210, 43, 43, 0.4);
   transform: translateY(0); transition: all 0.2s; pointer-events: auto; user-select: none;
 }
 .float-btn:hover { transform: translateY(-3px); background: #ff4d4d; }
 .float-btn::after {
   content: ''; position: absolute; top: 100%; left: 50%; margin-left: -6px;
   border-width: 6px; border-style: solid;
-  border-color: #b91b1b transparent transparent transparent;
+  border-color: #d22b2b transparent transparent transparent;
 }
 
 .modal-mask {
@@ -203,36 +201,53 @@ onUnmounted(() => {
   text-shadow: 0 1px 1px rgba(0,0,0,0.5);
 }
 
-/* 底部信息 */
+/* 🔴 核心修改：左右两端对齐布局 */
 .poster-footer {
   display: flex; 
-  flex-direction: column; 
-  align-items: flex-start;
+  flex-direction: row; /* 水平排列 */
+  justify-content: space-between; /* 左右两端撑开 */
+  align-items: flex-end; /* 底部对齐 */
   border-top: 1px solid rgba(255,255,255,0.1); 
-  padding-top: 25px;
+  padding-top: 20px;
   z-index: 1; position: relative;
 }
 
-.footer-info { display: flex; flex-direction: column; }
+/* 左边信息块 */
+.footer-left {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  max-width: 65%; /* 防止太长撞到右边 */
+}
 
-/* 1. 主标题 */
+/* 右边信息块 */
+.footer-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end; /* 右对齐 */
+}
+
 .main-author {
-  font-size: 18px; font-weight: bold; color: #fff; 
-  margin-bottom: 8px; letter-spacing: 2px;
+  font-size: 16px; font-weight: bold; color: #fff; 
+  margin-bottom: 6px; letter-spacing: 1px;
 }
 
-/* 2. 篇名 (精致化) */
 .sub-source {
-  font-size: 13px; color: #aaa; 
+  font-size: 12px; color: #aaa; 
   font-family: "Songti SC", "SimSun", serif; 
-  margin-bottom: 15px; letter-spacing: 1px;
+  line-height: 1.2;
 }
 
-/* 3. 网址 */
 .site {
-  font-size: 10px; color: #555; 
-  font-family: sans-serif; letter-spacing: 1px;
+  font-size: 11px; color: #666; 
+  font-family: sans-serif; letter-spacing: 0.5px;
   text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.site-cn {
+  font-size: 11px; color: #444; 
+  font-family: "Songti SC", serif;
 }
 
 .result-area { display: flex; flex-direction: column; align-items: center; width: 100%; }
