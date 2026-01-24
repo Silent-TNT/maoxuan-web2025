@@ -116,17 +116,13 @@ onUnmounted(() => {
           <div class="poster-body">{{ quote }}</div>
           
           <div class="poster-footer">
-            
-            <div class="footer-left">
+            <div class="footer-info">
               <div class="main-author">毛泽东选集</div>
               <div class="sub-source">{{ page.title }}</div>
+              <div class="site">xuemaoxuan.com · 学毛选</div>
             </div>
-
-            <div class="footer-right">
-              <div class="site">xuemaoxuan.com</div>
-            </div>
-            
           </div>
+          
           <div class="noise-bg"></div>
         </div>
 
@@ -146,7 +142,7 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-/* 悬浮按钮 - 颜色已改回品牌红 #d22b2b */
+/* 悬浮按钮 */
 .float-btn {
   position: absolute; z-index: 1000;
   background: #d22b2b; color: #fff; padding: 8px 16px;
@@ -200,52 +196,42 @@ onUnmounted(() => {
   text-shadow: 0 1px 1px rgba(0,0,0,0.5);
 }
 
-/* 🔴 核心修改：底部布局 */
+/* 🔴 核心修改：紧凑型底部 */
 .poster-footer {
   display: flex; 
-  flex-direction: row; 
-  justify-content: space-between; /* 左右两端撑开 */
-  align-items: flex-end; /* ⚠️关键：让左右文字的底部在一条线上 */
+  flex-direction: column; /* 恢复垂直排列 */
+  align-items: flex-start; /* 左对齐 */
   border-top: 1px solid rgba(255,255,255,0.1); 
-  padding-top: 20px;
+  padding-top: 15px; /* 减小顶部间距 */
   z-index: 1; position: relative;
 }
 
-/* 左边：书名大，篇名小 */
-.footer-left {
+.footer-info {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  max-width: 70%; /* 留30%给右边，防止重叠 */
-}
-
-/* 右边：只留一个极简域名 */
-.footer-right {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  opacity: 0.5; /* 让域名稍微暗一点，不抢戏 */
 }
 
 .main-author {
   font-size: 16px; font-weight: bold; color: #fff; 
-  margin-bottom: 5px; letter-spacing: 1px;
-}
-
-.sub-source {
-  font-size: 12px; color: #aaa; 
-  font-family: "Songti SC", "SimSun", serif; 
+  margin-bottom: 3px; /* 极小的间距 */
+  letter-spacing: 1px;
   line-height: 1.2;
 }
 
+.sub-source {
+  font-size: 13px; color: #aaa; 
+  font-family: "Songti SC", "SimSun", serif; 
+  margin-bottom: 5px; /* 稍微拉开一点和域名的距离 */
+  letter-spacing: 1px;
+  line-height: 1.3; /* 防止篇名太长换行时挤在一起 */
+}
+
 .site {
-  font-size: 10px; /* 极小字号 */
-  color: #fff; 
-  font-family: sans-serif; 
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-  /* 微调：让域名的基线和左边篇名的文字视觉对齐 */
-  margin-bottom: 1px; 
+  font-size: 11px; color: #666; 
+  font-family: sans-serif; letter-spacing: 0.5px;
+  text-transform: lowercase; /* 强制小写 */
+  margin-bottom: 0; /* 最后一行不需要下边距 */
+  line-height: 1;
 }
 
 .result-area { display: flex; flex-direction: column; align-items: center; width: 100%; }
