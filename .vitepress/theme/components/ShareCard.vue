@@ -18,12 +18,13 @@ const handleSelection = () => {
   const selection = window.getSelection()
   let text = selection.toString().trim()
 
-  // 🔴 强力清洗模式：
-  // 1. [\(（\[] : 匹配任意一种左括号 (半角、全角、方括号)
+  // 🔴 核弹级清洗正则：
+  // 1. [\(（\[【] : 匹配所有类型的左括号
   // 2. \s* : 允许括号内有空格
   // 3. \d+ : 匹配数字
-  // 4. [\)）\]] : 匹配任意一种右括号
-  text = text.replace(/[\(（\[]\s*\d+\s*[\)）\]]/g, '')
+  // 4. [\)）\]】] : 匹配所有类型的右括号
+  // 5. |[⑴-⒇] : 额外匹配特殊序号字符 (如 ⑴, ⑵...)
+  text = text.replace(/([\(（\[【]\s*\d+\s*[\)）\]】]|[⑴-⒇])/g, '')
 
   if (text.length > 5 && text.length < 1500) { 
     quote.value = text
@@ -122,6 +123,7 @@ onUnmounted(() => {
           <div class="poster-footer">
             <div class="footer-info">
               <div class="main-author">毛泽东选集</div>
+              
               <div class="sub-source">{{ page.title }}</div>
               
               <div class="site">xuemaoxuan.com · 学毛选</div>
@@ -147,7 +149,7 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-/* 悬浮按钮保持不变 */
+/* 悬浮按钮及通用样式保持不变 */
 .float-btn {
   position: absolute; z-index: 1000;
   background: #d22b2b; color: #fff; padding: 8px 16px;
@@ -185,73 +187,4 @@ onUnmounted(() => {
 
 .noise-bg {
   position: absolute; top:0; left:0; width:100%; height:100%;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
-  pointer-events: none; opacity: 0.4; z-index: 0;
-}
-
-.poster-header {
-  font-size: 100px; color: #d22b2b; line-height: 1.0; 
-  font-family: serif; opacity: 0.9;
-  margin-top: 35px; margin-bottom: -20px; 
-}
-
-.poster-body {
-  font-size: 16px; line-height: 1.8; text-align: justify;
-  margin-bottom: 40px; font-weight: 300; z-index: 1; position: relative;
-  text-shadow: 0 1px 1px rgba(0,0,0,0.5);
-}
-
-/* 🔴 底部布局优化 */
-.poster-footer {
-  display: flex; 
-  flex-direction: column; /* 改为垂直排列 */
-  align-items: flex-start; /* 左对齐 */
-  border-top: 1px solid rgba(255,255,255,0.1); 
-  padding-top: 20px;
-  z-index: 1; position: relative;
-}
-
-.footer-info {
-  display: flex;
-  flex-direction: column;
-}
-
-.main-author {
-  font-size: 16px; 
-  font-weight: bold; 
-  color: #eee; 
-  margin-bottom: 4px; /* 标题和篇名之间的间距 */
-  letter-spacing: 1px;
-}
-
-.sub-source {
-  font-size: 12px; /* 篇名改小 */
-  color: #bbb; /* 颜色改淡，形成层次 */
-  font-family: "Songti SC", "SimSun", serif; /* 保持衬线体 */
-  margin-bottom: 12px; /* 篇名和网址之间的间距 */
-  opacity: 0.9;
-}
-
-.site {
-  font-size: 10px; 
-  color: #666; 
-  font-family: sans-serif; 
-  letter-spacing: 0.5px;
-}
-
-.result-area { display: flex; flex-direction: column; align-items: center; width: 100%; }
-.tip-text { color: #fff; margin: 10px 0 20px 0; font-weight: normal; font-size: 14px; opacity: 0.8; }
-.final-img { width: 320px; max-width: 100%; box-shadow: 0 20px 50px rgba(0,0,0,0.8); border-radius: 8px; margin-bottom: 20px; border: 1px solid #333; display: block; }
-.close-btn {
-  background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff;
-  padding: 8px 30px; border-radius: 50px; cursor: pointer; margin-bottom: 20px; transition: 0.2s;
-}
-.close-btn:hover { background: #fff; color: #000; }
-
-.loading-box { display: flex; flex-direction: column; align-items: center; color: #888; margin-top: 50px; }
-.loading-spinner {
-  width: 30px; height: 30px; border: 3px solid rgba(255,255,255,0.1); border-top-color: #d22b2b;
-  border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-</style>
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200
