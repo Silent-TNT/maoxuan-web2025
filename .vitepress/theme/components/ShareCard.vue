@@ -1,9 +1,8 @@
 <script setup>
 import { ref, onMounted, onUnmounted, nextTick } from 'vue'
-// 1. 引入 VitePress 的数据钩子，用来获取当前文章标题
 import { useData } from 'vitepress'
 
-const { page } = useData() // 获取当前页面数据
+const { page } = useData()
 
 let html2canvas = null
 const visible = ref(false)
@@ -13,18 +12,18 @@ const quote = ref('')
 const generating = ref(false)
 const cardImage = ref(null)
 
-// 2. 监听选词 (包含清洗逻辑)
 const handleSelection = () => {
   if (showModal.value) return
 
   const selection = window.getSelection()
-  // 先获取原始文本
   let text = selection.toString().trim()
 
-  // 🔴 核心修改：正则清洗功能
-  // 意思是：找到所有 (数字)、（数字）、[数字] 格式的内容，全部替换为空
-  // 覆盖了英文括号(1)、中文括号（1）、方括号[1]
-  text = text.replace(/(\(\d+\)|（\d+）|\[\d+\])/g, '')
+  // 🔴 强力清洗模式：
+  // 1. [\(（\[] : 匹配任意一种左括号 (半角、全角、方括号)
+  // 2. \s* : 允许括号内有空格
+  // 3. \d+ : 匹配数字
+  // 4. [\)）\]] : 匹配任意一种右括号
+  text = text.replace(/[\(（\[]\s*\d+\s*[\)）\]]/g, '')
 
   if (text.length > 5 && text.length < 1500) { 
     quote.value = text
@@ -41,7 +40,6 @@ const handleSelection = () => {
   }
 }
 
-// 3. 生成图片
 const generateCard = async () => {
   if (!html2canvas) {
     try {
@@ -63,7 +61,6 @@ const generateCard = async () => {
   
   if (element) {
     element.style.display = 'block'
-    
     try {
       const canvas = await html2canvas(element, {
         useCORS: true,
@@ -118,16 +115,19 @@ onUnmounted(() => {
 
     <div v-if="showModal" class="modal-mask" @click.self="closeModal">
       <div class="modal-content">
-        
         <div id="poster-node" class="poster-card" style="display: none;">
           <div class="poster-header">“</div>
           <div class="poster-body">{{ quote }}</div>
+          
           <div class="poster-footer">
             <div class="footer-info">
-              <div class="author">毛泽东选集 · {{ page.title }}</div>
+              <div class="main-author">毛泽东选集</div>
+              <div class="sub-source">{{ page.title }}</div>
+              
               <div class="site">xuemaoxuan.com · 学毛选</div>
             </div>
           </div>
+          
           <div class="noise-bg"></div>
         </div>
 
@@ -141,14 +141,13 @@ onUnmounted(() => {
           <div class="loading-spinner"></div>
           <p>正在绘制精美卡片...</p>
         </div>
-
       </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-/* 保持原有样式不变 */
+/* 悬浮按钮保持不变 */
 .float-btn {
   position: absolute; z-index: 1000;
   background: #d22b2b; color: #fff; padding: 8px 16px;
@@ -201,13 +200,44 @@ onUnmounted(() => {
   margin-bottom: 40px; font-weight: 300; z-index: 1; position: relative;
   text-shadow: 0 1px 1px rgba(0,0,0,0.5);
 }
+
+/* 🔴 底部布局优化 */
 .poster-footer {
-  display: flex; justify-content: flex-start; align-items: flex-end;
-  border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px;
+  display: flex; 
+  flex-direction: column; /* 改为垂直排列 */
+  align-items: flex-start; /* 左对齐 */
+  border-top: 1px solid rgba(255,255,255,0.1); 
+  padding-top: 20px;
   z-index: 1; position: relative;
 }
-.author { font-size: 14px; font-weight: bold; color: #eee; margin-bottom: 6px; letter-spacing: 1px; }
-.site { font-size: 11px; color: #888; font-family: sans-serif; letter-spacing: 0.5px; }
+
+.footer-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.main-author {
+  font-size: 16px; 
+  font-weight: bold; 
+  color: #eee; 
+  margin-bottom: 4px; /* 标题和篇名之间的间距 */
+  letter-spacing: 1px;
+}
+
+.sub-source {
+  font-size: 12px; /* 篇名改小 */
+  color: #bbb; /* 颜色改淡，形成层次 */
+  font-family: "Songti SC", "SimSun", serif; /* 保持衬线体 */
+  margin-bottom: 12px; /* 篇名和网址之间的间距 */
+  opacity: 0.9;
+}
+
+.site {
+  font-size: 10px; 
+  color: #666; 
+  font-family: sans-serif; 
+  letter-spacing: 0.5px;
+}
 
 .result-area { display: flex; flex-direction: column; align-items: center; width: 100%; }
 .tip-text { color: #fff; margin: 10px 0 20px 0; font-weight: normal; font-size: 14px; opacity: 0.8; }
