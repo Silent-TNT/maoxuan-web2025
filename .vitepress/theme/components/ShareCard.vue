@@ -124,7 +124,6 @@ onUnmounted(() => {
 
             <div class="footer-right">
               <div class="site">xuemaoxuan.com</div>
-              <div class="site-cn">学毛选</div>
             </div>
             
           </div>
@@ -147,7 +146,7 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-/* 悬浮按钮 - 颜色改回品牌红 #d22b2b */
+/* 悬浮按钮 - 颜色已改回品牌红 #d22b2b */
 .float-btn {
   position: absolute; z-index: 1000;
   background: #d22b2b; color: #fff; padding: 8px 16px;
@@ -201,35 +200,36 @@ onUnmounted(() => {
   text-shadow: 0 1px 1px rgba(0,0,0,0.5);
 }
 
-/* 🔴 核心修改：左右两端对齐布局 */
+/* 🔴 核心修改：底部布局 */
 .poster-footer {
   display: flex; 
-  flex-direction: row; /* 水平排列 */
+  flex-direction: row; 
   justify-content: space-between; /* 左右两端撑开 */
-  align-items: flex-end; /* 底部对齐 */
+  align-items: flex-end; /* ⚠️关键：让左右文字的底部在一条线上 */
   border-top: 1px solid rgba(255,255,255,0.1); 
   padding-top: 20px;
   z-index: 1; position: relative;
 }
 
-/* 左边信息块 */
+/* 左边：书名大，篇名小 */
 .footer-left {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  max-width: 65%; /* 防止太长撞到右边 */
+  max-width: 70%; /* 留30%给右边，防止重叠 */
 }
 
-/* 右边信息块 */
+/* 右边：只留一个极简域名 */
 .footer-right {
   display: flex;
   flex-direction: column;
-  align-items: flex-end; /* 右对齐 */
+  align-items: flex-end;
+  opacity: 0.5; /* 让域名稍微暗一点，不抢戏 */
 }
 
 .main-author {
   font-size: 16px; font-weight: bold; color: #fff; 
-  margin-bottom: 6px; letter-spacing: 1px;
+  margin-bottom: 5px; letter-spacing: 1px;
 }
 
 .sub-source {
@@ -239,15 +239,13 @@ onUnmounted(() => {
 }
 
 .site {
-  font-size: 11px; color: #666; 
-  font-family: sans-serif; letter-spacing: 0.5px;
+  font-size: 10px; /* 极小字号 */
+  color: #fff; 
+  font-family: sans-serif; 
+  letter-spacing: 0.5px;
   text-transform: uppercase;
-  margin-bottom: 4px;
-}
-
-.site-cn {
-  font-size: 11px; color: #444; 
-  font-family: "Songti SC", serif;
+  /* 微调：让域名的基线和左边篇名的文字视觉对齐 */
+  margin-bottom: 1px; 
 }
 
 .result-area { display: flex; flex-direction: column; align-items: center; width: 100%; }
