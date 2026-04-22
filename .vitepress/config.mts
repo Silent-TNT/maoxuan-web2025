@@ -3,8 +3,9 @@ import { defineConfig } from 'vitepress'
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
   title: "毛泽东选集在线阅读",
-  description: "提供毛泽东选集第一卷至第四卷的完整在线阅读。支持手机平板适配，极简纯净，无广告干扰，随时随地学习毛选。",
+  description: "毛泽东选集在线阅读平台。极简排版，纯净无广告，手机平板适配，为您提供最沉浸式的经典阅读体验。",
   head: [
+    ['meta', { name: 'keywords', content: '毛泽东选集,毛选,毛选在线阅读,无广告阅读,毛选txt' }],
     ['link', { rel: 'icon', href: '/logo.png' }]
   ],
   sitemap: {
