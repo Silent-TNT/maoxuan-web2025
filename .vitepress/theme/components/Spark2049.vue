@@ -1,82 +1,49 @@
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, computed } from 'vue' // 引入 computed
 import donors from '../../donors.json'
 
-// --- 1. 时间计算逻辑 ---
+// --- 配置参数 ---
+const COST_PER_YEAR = 85 // 每年运营成本
 const startDate = new Date('2025-12-19') // 建站日
 const targetDate = new Date('2049-10-01') // 终极目标
-const fundedDate = new Date('2026-12-19') // 🔴 新增：目前资金可支撑到的日期
-const today = new Date() // 获取当前访问时间
+const baseFundedDate = new Date('2026-12-19') // 初始自费保障到的日期
+const today = new Date()
 
-// 计算天数
+// --- 🔴 核心逻辑：自动计算金额与日期 ---
+// 1. 计算捐赠总额
+const totalDonation = donors.reduce((sum, d) => sum + Number(d.amount || 0), 0)
+
+// 2. 将金额折算为天数 (金额 / 85 * 365)
+const extraDays = Math.floor((totalDonation / COST_PER_YEAR) * 365)
+
+// 3. 最终动态保障日期 = 初始保障日期 + 捐赠天数
+const fundedDate = new Date(baseFundedDate.getTime() + extraDays * 24 * 60 * 60 * 1000)
+
+// 4. 格式化显示的日期 (YYYY年MM月DD日)
+const formattedFundedDate = `${fundedDate.getFullYear()}年${fundedDate.getMonth() + 1}月${fundedDate.getDate()}日`
+
+// --- 进度计算 ---
 const daysRun = Math.max(1, Math.ceil((today - startDate) / (1000 * 60 * 60 * 24)))
 const daysLeft = Math.ceil((targetDate - today) / (1000 * 60 * 60 * 24))
 
-// 计算百分比
 const totalDuration = targetDate - startDate
 const currentDuration = today - startDate
 const fundedDuration = fundedDate - startDate
 
-// 今天的进度（小白点的位置）
 const progressPercent = Math.min((currentDuration / totalDuration) * 100, 100).toFixed(4)
-// 🔴 新增：已运营保障的进度（暗红条的长度）
 const fundedPercent = Math.min((fundedDuration / totalDuration) * 100, 100).toFixed(4)
-
-// --- 2. 交互逻辑 ---
-const showQR = ref(false)
-const activeIndex = ref(-1)
-
-const randomStyle = () => {
-  const delay = Math.random() * 2 + 's'
-  const size = 0.9 + Math.random() * 0.6 
-  return { animationDelay: delay, transform: `scale(${size})` }
-}
-
-const toggleSpark = (index, event) => {
-  event.stopPropagation()
-  activeIndex.value = activeIndex.value === index ? -1 : index
-}
-const closeAll = () => activeIndex.value = -1
-</script>
 
 <template>
   <div class="spark-universe" @click="closeAll">
-    <a href="/" class="back-home">
-      <span class="arrow">←</span> 首页
-    </a>
-
     <div class="header-section">
       <h1 class="title">星火计划</h1>
       
       <div class="intro-box">
         <p class="intro-text">愿景：将该站维护至 2049 年</p>
-        <p class="sub-intro">（目前可运营至 2026 年 12 月 19 日）</p>
-      </div>
-
-      <div class="time-stats">
-        <span class="stat-group">已运行 {{ daysRun }} 天</span>
-        <span class="divider">/</span>
-        <span class="stat-group">距建国百年还需 {{ daysLeft }} 天</span>
+        <p class="sub-intro">（目前已获星火支持运营至 {{ formattedFundedDate }}）</p>
       </div>
       
-      <div class="progress-container">
-        <div class="progress-line-bg">
-          
-          <div class="progress-line-funded" :style="{ width: fundedPercent + '%' }"></div>
-
-          <div class="progress-line-active" :style="{ width: progressPercent + '%' }">
-            <div class="glowing-dot"></div>
-          </div>
-
-        </div>
       </div>
-
-      <div class="action-area">
-        <div class="glass-btn" @click.stop="showQR = true">
-          <span class="plus">+</span> 汇入火种
-        </div>
-      </div>
-    </div>
 
     <div class="sparks-field">
       <div 
@@ -87,26 +54,20 @@ const closeAll = () => activeIndex.value = -1
         :style="randomStyle()"
         @click="(e) => toggleSpark(index, e)"
       >
-        <div class="fire-core">
-          <div class="flame-tip"></div>
-        </div>
+        <div class="fire-core"><div class="flame-tip"></div></div>
         
         <div class="spark-card" @click.stop>
+          <div class="donor-meta">
+            <span>{{ donor.date }}</span>
+            <span class="amount">￥{{ donor.amount }}</span>
+          </div>
           <div class="donor-name">@{{ donor.name }}</div>
           <div class="donor-msg">“{{ donor.message }}”</div>
         </div>
       </div>
     </div>
 
-    <div v-if="showQR" class="qr-modal" @click.stop="showQR = false">
-      <div class="modal-content" @click.stop>
-        <h3>注入火种</h3>
-        <img src="/wechat-pay.jpg" alt="捐赠二维码" class="qr-img">
-        <p style="color:#888; font-size: 13px;">请备注【昵称 + 寄语】</p>
-        <button class="close-btn" @click="showQR = false">关闭</button>
-      </div>
     </div>
-  </div>
 </template>
 
 <style scoped>
@@ -129,6 +90,36 @@ const closeAll = () => activeIndex.value = -1
 .title {
   font-size: 2.4rem; font-weight: 200; letter-spacing: 8px; color: #fff;
   margin: 0 0 15px 0; text-shadow: 0 0 30px rgba(255, 50, 50, 0.2); opacity: 0.95; text-align: center;
+}
+/* 🔴 新增：火种卡片内的金额与日期样式 */
+.donor-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.4);
+  margin-bottom: 4px;
+  letter-spacing: 0;
+  font-family: sans-serif;
+}
+.donor-meta .amount {
+  color: #ffcc00; /* 金色显示金额，更有仪式感 */
+  font-weight: bold;
+}
+
+.donor-name { 
+  font-size: 11px; /* 稍微调大一点 */
+  color: #eaa; 
+  margin-bottom: 4px; 
+  font-weight: 600;
+}
+
+.donor-msg { 
+  font-size: 12px; 
+  color: #fff; 
+  font-family: "Songti SC", serif; 
+  line-height: 1.4;
+  border-top: 1px solid rgba(255,100,100,0.1);
+  padding-top: 4px;
 }
 
 /* --- 文案区域修改 --- */
