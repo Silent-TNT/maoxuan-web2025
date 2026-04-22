@@ -1,15 +1,31 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue' 
-import donors from '../../donors.json'
+import rawDonors from '../../donors.json'
+
+// --- 🔴 新增：预处理数据，计算火种大小和动画延迟 ---
+const donors = rawDonors.map(d => {
+  const amount = Number(d.amount || 0)
+  
+  // 核心算法：利用对数曲线计算火苗大小。
+  // 1元 ≈ 0.9倍大小， 10元 ≈ 1.2倍， 84元 ≈ 1.56倍
+  // 这样既能体现金额差距，又能防止大额打赏让火种占满全屏
+  const scale = 0.8 + Math.log10(amount + 1) * 0.4
+  
+  return {
+    ...d,
+    scale: scale.toFixed(2), // 绑定给火苗的大小比例
+    delay: Math.random() * 2 + 's' // 随机呼吸动画延迟
+  }
+})
 
 // --- 配置参数 ---
-const COST_PER_YEAR = 85 // 每年运营成本
-const startDate = new Date('2025-12-19') // 建站日
-const targetDate = new Date('2049-10-01') // 终极目标
-const baseFundedDate = new Date('2026-12-19') // 初始自费保障到的日期
+const COST_PER_YEAR = 85 
+const startDate = new Date('2025-12-19') 
+const targetDate = new Date('2049-10-01') 
+const baseFundedDate = new Date('2025-12-19') 
 const today = new Date()
 
-// --- 🔴 核心逻辑：自动计算金额与日期 ---
+// --- 自动计算金额与日期 ---
 const totalDonation = donors.reduce((sum, d) => sum + Number(d.amount || 0), 0)
 const extraDays = Math.floor((totalDonation / COST_PER_YEAR) * 365)
 const fundedDate = new Date(baseFundedDate.getTime() + extraDays * 24 * 60 * 60 * 1000)
@@ -29,12 +45,6 @@ const fundedPercent = Math.min((fundedDuration / totalDuration) * 100, 100).toFi
 // --- 交互逻辑 ---
 const showQR = ref(false)
 const activeIndex = ref(-1)
-
-const randomStyle = () => {
-  const delay = Math.random() * 2 + 's'
-  const size = 0.9 + Math.random() * 0.6 
-  return { animationDelay: delay, transform: `scale(${size})` }
-}
 
 const toggleSpark = (index, event) => {
   event.stopPropagation()
@@ -85,11 +95,12 @@ const closeAll = () => activeIndex.value = -1
         :key="index"
         class="spark-item"
         :class="{ 'is-active': activeIndex === index }" 
-        :style="randomStyle()"
         @click="(e) => toggleSpark(index, e)"
       >
-        <div class="fire-core">
-          <div class="flame-tip"></div>
+        <div class="fire-wrapper" :style="{ transform: `scale(${donor.scale})` }">
+          <div class="fire-core" :style="{ animationDelay: donor.delay }">
+            <div class="flame-tip"></div>
+          </div>
         </div>
         
         <div class="spark-card" @click.stop>
@@ -136,7 +147,7 @@ const closeAll = () => activeIndex.value = -1
   margin: 0 0 15px 0; text-shadow: 0 0 30px rgba(255, 50, 50, 0.2); opacity: 0.95; text-align: center;
 }
 
-/* 火种卡片内的金额与日期样式 */
+/* 火种卡片文字样式 */
 .donor-meta {
   display: flex;
   justify-content: space-between;
@@ -233,6 +244,12 @@ const closeAll = () => activeIndex.value = -1
 }
 .spark-item { position: relative; width: 14px; height: 12px; cursor: pointer; }
 
+/* 🔴 专属容器保证动画由底部向上放大 */
+.fire-wrapper {
+  width: 100%; height: 100%;
+  transform-origin: center bottom;
+}
+
 .fire-core {
   width: 100%; height: 100%;
   border-radius: 50% 50% 40% 40% / 60% 60% 40% 40%;
@@ -247,12 +264,12 @@ const closeAll = () => activeIndex.value = -1
   border-radius: 50% 50% 0 0; filter: blur(2px); opacity: 0.7; animation: rise 1.5s infinite linear;
 }
 .spark-item:hover .fire-core, .spark-item.is-active .fire-core { 
-  transform: scale(1.4); box-shadow: 0 0 15px #fff, 0 0 30px #ff5500, 0 0 60px #ff0000;
+  transform: scale(1.3); box-shadow: 0 0 15px #fff, 0 0 30px #ff5500, 0 0 60px #ff0000;
 }
 @keyframes breathe { 0% { transform: scale(0.9); filter: brightness(0.9); } 100% { transform: scale(1.1); filter: brightness(1.2); } }
 @keyframes rise { 0% { transform: translateY(0) scaleX(1); opacity: 0.5; } 100% { transform: translateY(-8px) scaleX(0.5); opacity: 0; } }
 
-/* 卡片 */
+/* 卡片 - 不再随外层缩放！ */
 .spark-card {
   position: absolute; bottom: 45px; left: 50%; transform: translateX(-50%) translateY(10px);
   background: rgba(20, 0, 0, 0.95); border: 1px solid #633;
