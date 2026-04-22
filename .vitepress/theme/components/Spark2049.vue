@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue' // 引入 computed
+import { ref, onMounted, computed } from 'vue' 
 import donors from '../../donors.json'
 
 // --- 配置参数 ---
@@ -10,16 +10,9 @@ const baseFundedDate = new Date('2026-12-19') // 初始自费保障到的日期
 const today = new Date()
 
 // --- 🔴 核心逻辑：自动计算金额与日期 ---
-// 1. 计算捐赠总额
 const totalDonation = donors.reduce((sum, d) => sum + Number(d.amount || 0), 0)
-
-// 2. 将金额折算为天数 (金额 / 85 * 365)
 const extraDays = Math.floor((totalDonation / COST_PER_YEAR) * 365)
-
-// 3. 最终动态保障日期 = 初始保障日期 + 捐赠天数
 const fundedDate = new Date(baseFundedDate.getTime() + extraDays * 24 * 60 * 60 * 1000)
-
-// 4. 格式化显示的日期 (YYYY年MM月DD日)
 const formattedFundedDate = `${fundedDate.getFullYear()}年${fundedDate.getMonth() + 1}月${fundedDate.getDate()}日`
 
 // --- 进度计算 ---
@@ -33,8 +26,29 @@ const fundedDuration = fundedDate - startDate
 const progressPercent = Math.min((currentDuration / totalDuration) * 100, 100).toFixed(4)
 const fundedPercent = Math.min((fundedDuration / totalDuration) * 100, 100).toFixed(4)
 
+// --- 交互逻辑 ---
+const showQR = ref(false)
+const activeIndex = ref(-1)
+
+const randomStyle = () => {
+  const delay = Math.random() * 2 + 's'
+  const size = 0.9 + Math.random() * 0.6 
+  return { animationDelay: delay, transform: `scale(${size})` }
+}
+
+const toggleSpark = (index, event) => {
+  event.stopPropagation()
+  activeIndex.value = activeIndex.value === index ? -1 : index
+}
+const closeAll = () => activeIndex.value = -1
+</script>
+
 <template>
   <div class="spark-universe" @click="closeAll">
+    <a href="/" class="back-home">
+      <span class="arrow">←</span> 首页
+    </a>
+
     <div class="header-section">
       <h1 class="title">星火计划</h1>
       
@@ -42,8 +56,28 @@ const fundedPercent = Math.min((fundedDuration / totalDuration) * 100, 100).toFi
         <p class="intro-text">愿景：将该站维护至 2049 年</p>
         <p class="sub-intro">（目前已获星火支持运营至 {{ formattedFundedDate }}）</p>
       </div>
-      
+
+      <div class="time-stats">
+        <span class="stat-group">已运行 {{ daysRun }} 天</span>
+        <span class="divider">/</span>
+        <span class="stat-group">距建国百年还需 {{ daysLeft }} 天</span>
       </div>
+      
+      <div class="progress-container">
+        <div class="progress-line-bg">
+          <div class="progress-line-funded" :style="{ width: fundedPercent + '%' }"></div>
+          <div class="progress-line-active" :style="{ width: progressPercent + '%' }">
+            <div class="glowing-dot"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="action-area">
+        <div class="glass-btn" @click.stop="showQR = true">
+          <span class="plus">+</span> 汇入火种
+        </div>
+      </div>
+    </div>
 
     <div class="sparks-field">
       <div 
@@ -54,7 +88,9 @@ const fundedPercent = Math.min((fundedDuration / totalDuration) * 100, 100).toFi
         :style="randomStyle()"
         @click="(e) => toggleSpark(index, e)"
       >
-        <div class="fire-core"><div class="flame-tip"></div></div>
+        <div class="fire-core">
+          <div class="flame-tip"></div>
+        </div>
         
         <div class="spark-card" @click.stop>
           <div class="donor-meta">
@@ -67,11 +103,19 @@ const fundedPercent = Math.min((fundedDuration / totalDuration) * 100, 100).toFi
       </div>
     </div>
 
+    <div v-if="showQR" class="qr-modal" @click.stop="showQR = false">
+      <div class="modal-content" @click.stop>
+        <h3>注入火种</h3>
+        <img src="/wechat-pay.jpg" alt="捐赠二维码" class="qr-img">
+        <p style="color:#888; font-size: 13px;">请备注【昵称 + 寄语】</p>
+        <button class="close-btn" @click="showQR = false">关闭</button>
+      </div>
     </div>
+  </div>
 </template>
 
 <style scoped>
-/* 基础样式保持不变 */
+/* 基础样式 */
 .spark-universe {
   position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; height: 100dvh;
   background: #000; z-index: 200; color: #fff; display: flex; flex-direction: column; overflow: hidden;
@@ -91,7 +135,8 @@ const fundedPercent = Math.min((fundedDuration / totalDuration) * 100, 100).toFi
   font-size: 2.4rem; font-weight: 200; letter-spacing: 8px; color: #fff;
   margin: 0 0 15px 0; text-shadow: 0 0 30px rgba(255, 50, 50, 0.2); opacity: 0.95; text-align: center;
 }
-/* 🔴 新增：火种卡片内的金额与日期样式 */
+
+/* 火种卡片内的金额与日期样式 */
 .donor-meta {
   display: flex;
   justify-content: space-between;
@@ -102,12 +147,12 @@ const fundedPercent = Math.min((fundedDuration / totalDuration) * 100, 100).toFi
   font-family: sans-serif;
 }
 .donor-meta .amount {
-  color: #ffcc00; /* 金色显示金额，更有仪式感 */
+  color: #ffcc00; 
   font-weight: bold;
 }
 
 .donor-name { 
-  font-size: 11px; /* 稍微调大一点 */
+  font-size: 11px; 
   color: #eaa; 
   margin-bottom: 4px; 
   font-weight: 600;
@@ -122,22 +167,21 @@ const fundedPercent = Math.min((fundedDuration / totalDuration) * 100, 100).toFi
   padding-top: 4px;
 }
 
-/* --- 文案区域修改 --- */
+/* 文案区域 */
 .intro-box {
-  display: flex; flex-direction: column; /* 改为纵向排列 */
+  display: flex; flex-direction: column;
   align-items: center; 
   margin-bottom: 30px;
 }
 .intro-text {
   font-family: "Songti SC", "SimSun", serif; font-size: 15px; letter-spacing: 2px;
   color: rgba(255,255,255,0.8); font-weight: 300; text-align: center;
-  margin: 0 0 8px 0; /* 增加一点下间距 */
+  margin: 0 0 8px 0;
 }
-/* 🔴 新增：运营期限文字样式 */
 .sub-intro {
   font-family: "Songti SC", "SimSun", serif;
   font-size: 12px; 
-  color: #888; /* 暗灰色，不抢主文案 */
+  color: #888;
   letter-spacing: 1px;
   margin: 0;
   opacity: 0.8;
@@ -149,26 +193,24 @@ const fundedPercent = Math.min((fundedDuration / totalDuration) * 100, 100).toFi
 }
 .divider { margin: 0 10px; color: #444; }
 
-/* --- 进度条修改 --- */
+/* 进度条 */
 .progress-container { width: 100%; display: flex; justify-content: center; margin-bottom: 35px; }
 .progress-line-bg {
   width: 260px; height: 1px; 
-  background: rgba(255,255,255,0.1); /* 灰色底 */
+  background: rgba(255,255,255,0.1);
   position: relative;
 }
-/* 🔴 新增：已运营保障条 (暗红) */
 .progress-line-funded {
   position: absolute; left: 0; top: 0; height: 100%;
-  background: rgba(210, 43, 43, 0.5); /* 半透明暗红 */
+  background: rgba(210, 43, 43, 0.5);
   box-shadow: 0 0 5px rgba(210, 43, 43, 0.3);
-  z-index: 1; /* 在灰底之上，在白点之下 */
+  z-index: 1;
   transition: width 1s ease;
 }
-/* 活跃进度条 (今天) */
 .progress-line-active {
   position: absolute; left: 0; top: 0; height: 100%;
-  background: #fff; /* 亮白 */
-  z-index: 2; /* 最上层 */
+  background: #fff;
+  z-index: 2;
   box-shadow: 0 0 8px rgba(255,255,255,0.4);
 }
 .glowing-dot {
@@ -221,8 +263,6 @@ const fundedPercent = Math.min((fundedDuration / totalDuration) * 100, 100).toFi
 .spark-item:hover .spark-card, .spark-item.is-active .spark-card { 
   opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0);
 }
-.donor-name { font-size: 10px; color: #eaa; margin-bottom: 2px; opacity: 0.8; }
-.donor-msg { font-size: 12px; color: #fff; font-family: "Songti SC", serif; line-height: 1.4; }
 
 /* 弹窗 */
 .qr-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; justify-content: center; align-items: center; z-index: 500; backdrop-filter: blur(5px); }
