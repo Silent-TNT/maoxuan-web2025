@@ -1,5 +1,6 @@
 ---
 outline: deep
+robots: noindex, nofollow
 ---
 
 # Runtime API Examples

@@ -1,5 +1,22 @@
 {
   "framework": null,
   "buildCommand": "npm run docs:build",
-  "outputDirectory": ".vitepress/dist"
+  "outputDirectory": ".vitepress/dist",
+  "redirects": [
+    {
+      "source": "/第四卷/132-关于淮海战役的作战方针",
+      "destination": "/第四卷/132-关于淮海战役的的作战方针",
+      "permanent": true
+    },
+    {
+      "source": "/第四卷/144-四分五裂的反动派为什么还要空喊“全面和平”",
+      "destination": "/第四卷/144-四分五裂的反动派为什么还要空喊全面和平",
+      "permanent": true
+    },
+    {
+      "source": "/第四卷/154-论人民民主专政",
+      "destination": "/第四卷/154-论人民民主专政--纪念中国共产党二十八周年",
+      "permanent": true
+    }
+  ]
 }
