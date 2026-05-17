@@ -47,7 +47,7 @@
                 </div>
               </div>
 
-              <div class="chat-messages" ref="messagesContainer">
+              <div class="chat-messages" ref="messagesContainer" @click.capture="handleArticleLinkClick">
                 <div
                   v-for="(msg, index) in sharedMessages"
                   :key="index"
@@ -56,7 +56,11 @@
                   <div class="msg-bubble" v-html="formatMessage(msg.content)"></div>
                 </div>
 
-                <div v-if="sharedMessages.length === 1" class="quick-start-grid">
+                <div v-if="sharedIsLoading" class="message assistant">
+                  <div class="msg-bubble thinking">教员思考中…</div>
+                </div>
+
+                <div v-if="sharedMessages.length === 1 && !sharedIsLoading" class="quick-start-grid">
                   <button
                     v-for="question in sampleQuestions"
                     :key="question"
@@ -106,7 +110,7 @@
 <script setup>
 import { nextTick, computed, ref } from 'vue'
 import { marked } from 'marked'
-import { useData } from 'vitepress'
+import { useData, useRouter } from 'vitepress'
 import {
   WELCOME_TEXT,
   sharedMessages,
@@ -120,6 +124,7 @@ import {
 
 defineProps({ mode: { type: String, default: 'inline' } })
 const { frontmatter } = useData()
+const router = useRouter()
 const isHome = computed(() => frontmatter.value.layout === 'home')
 const showClearBtn = computed(() => canClearChat())
 
@@ -203,7 +208,49 @@ const scrollToBottom = async () => {
   }
 }
 
-const formatMessage = (text) => marked.parse(text || '')
+function normalizeArticlePath(href) {
+  if (!href) return null
+  let path = href
+  try {
+    if (/^https?:\/\//i.test(href)) {
+      const url = new URL(href)
+      const host = url.hostname.replace(/^www\./, '')
+      const siteHost = typeof window !== 'undefined' ? window.location.hostname.replace(/^www\./, '') : 'xuemaoxuan.com'
+      if (host !== siteHost && host !== 'xuemaoxuan.com') return null
+      path = url.pathname
+    }
+  } catch {
+    return null
+  }
+  if (!path.startsWith('/') || path.startsWith('//')) return null
+  if (!path.endsWith('.html') && !/\.[a-z0-9]+$/i.test(path)) path += '.html'
+  return path
+}
+
+function handleArticleLinkClick(event) {
+  const anchor = event.target.closest('a')
+  if (!anchor || !messagesContainer.value?.contains(anchor)) return
+  const path = normalizeArticlePath(anchor.getAttribute('href'))
+  if (!path) return
+  event.preventDefault()
+  closeModal()
+  router.push(path)
+}
+
+function formatMessage(text) {
+  const html = marked.parse(text || '')
+  return html
+    .replace(/href="https?:\/\/[^"]*?xuemaoxuan\.com([^"]+)"/gi, (_, p) => {
+      let path = p
+      if (!path.endsWith('.html') && !/\.[a-z0-9]+$/i.test(path)) path += '.html'
+      return `href="${path}"`
+    })
+    .replace(/href="(\/[^"]+)"/g, (_, p) => {
+      let path = p
+      if (!path.endsWith('.html') && !/\.[a-z0-9]+$/i.test(path)) path += '.html'
+      return `href="${path}"`
+    })
+}
 </script>
 
 <style scoped>
@@ -423,6 +470,16 @@ const formatMessage = (text) => marked.parse(text || '')
   border: 1px solid #eaeaea;
   border-bottom-left-radius: 2px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+}
+.message.assistant .msg-bubble.thinking {
+  color: #888;
+  font-style: italic;
+  border-style: dashed;
+  animation: thinking-pulse 1.2s ease-in-out infinite;
+}
+@keyframes thinking-pulse {
+  0%, 100% { opacity: 0.65; }
+  50% { opacity: 1; }
 }
 
 .msg-bubble :deep(p) {
