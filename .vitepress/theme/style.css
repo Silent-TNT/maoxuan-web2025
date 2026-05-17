@@ -80,3 +80,18 @@
   transform: translateY(1px);
   box-shadow: 0 2px 10px rgba(210, 43, 43, 0.4) !important;
 }
+
+/* 首页：教员咨询室与下方四卷卡片同宽对齐 */
+.VPHome .chat-trigger-wrapper {
+  padding: 0 24px;
+}
+@media (min-width: 640px) {
+  .VPHome .chat-trigger-wrapper {
+    padding: 0 48px;
+  }
+}
+.VPHome .chat-trigger-container {
+  max-width: 1152px;
+  margin: 0 auto;
+  width: 100%;
+}

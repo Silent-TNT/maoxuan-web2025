@@ -1,22 +1,30 @@
-<template>
-  <div v-if="mode === 'inline' && isHome" class="chat-trigger-wrapper">
-    <div class="chat-trigger-container">
-      <div class="chat-trigger-card" @click="openModal">
-        <div class="trigger-header">
+import fs from 'fs'
+import path from 'path'
+import { fileURLToPath } from 'url'
+
+const d = 'div'
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
+const out = path.join(root, '.vitepress/theme/components/AiChat.vue')
+
+const vue = `<template>
+  <${d} v-if="mode === 'inline' && isHome" class="chat-trigger-wrapper">
+    <${d} class="chat-trigger-container">
+      <${d} class="chat-trigger-card" @click="openModal">
+        <${d} class="trigger-header">
           <span class="icon">★</span>
           <span class="title">教员咨询室</span>
-        </div>
-        <div class="trigger-fake-input">
+        </${d}>
+        <${d} class="trigger-fake-input">
           <span class="placeholder">问问教员</span>
-          <div class="send-icon">
+          <${d} class="send-icon">
             <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
+          </${d}>
+        </${d}>
+      </${d}>
+    </${d}>
+  </${d}>
 
-  <div v-if="mode === 'float'" class="chat-float-wrapper" :class="{ 'is-home': isHome }">
+  <${d} v-if="mode === 'float'" class="chat-float-wrapper" :class="{ 'is-home': isHome }">
     <button v-if="!isHome" class="chat-toggle-btn" @click="openModal">
       ★ 咨询教员
     </button>
@@ -24,14 +32,14 @@
     <ClientOnly>
       <Teleport to="body">
         <Transition name="fade-scale">
-          <div v-if="isModalOpen" class="chat-modal-overlay" @click.self="closeModal">
-            <div class="chat-modal-window">
-              <div class="modal-header">
-                <div class="modal-header-left">
+          <${d} v-if="isModalOpen" class="chat-modal-overlay" @click.self="closeModal">
+            <${d} class="chat-modal-window">
+              <${d} class="modal-header">
+                <${d} class="modal-header-left">
                   <span class="icon">★</span>
                   <span class="title">教员咨询室</span>
-                </div>
-                <div class="modal-header-actions">
+                </${d}>
+                <${d} class="modal-header-actions">
                   <button
                     v-if="showClearBtn"
                     type="button"
@@ -44,19 +52,19 @@
                   <button type="button" class="close-text-btn" @click="closeModal">
                     收起
                   </button>
-                </div>
-              </div>
+                </${d}>
+              </${d}>
 
-              <div class="chat-messages" ref="messagesContainer">
-                <div
+              <${d} class="chat-messages" ref="messagesContainer">
+                <${d}
                   v-for="(msg, index) in sharedMessages"
                   :key="index"
                   :class="['message', msg.role]"
                 >
-                  <div class="msg-bubble" v-html="formatMessage(msg.content)"></div>
-                </div>
+                  <${d} class="msg-bubble" v-html="formatMessage(msg.content)"></${d}>
+                </${d}>
 
-                <div v-if="sharedMessages.length === 1" class="quick-start-grid">
+                <${d} v-if="sharedMessages.length === 1" class="quick-start-grid">
                   <button
                     v-for="question in sampleQuestions"
                     :key="question"
@@ -65,10 +73,10 @@
                   >
                     {{ question }}
                   </button>
-                </div>
-              </div>
+                </${d}>
+              </${d}>
 
-              <div class="chat-input-area">
+              <${d} class="chat-input-area">
                 <input
                   v-model="userInput"
                   @keyup.enter="sendMessage"
@@ -94,13 +102,13 @@
                     stroke-linejoin="round"
                   ><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
                 </button>
-              </div>
-            </div>
-          </div>
+              </${d}>
+            </${d}>
+          </${d}>
         </Transition>
       </Teleport>
     </ClientOnly>
-  </div>
+  </${d}>
 </template>
 
 <script setup>
@@ -547,3 +555,7 @@ const formatMessage = (text) => marked.parse(text || '')
   }
 }
 </style>
+`
+
+fs.writeFileSync(out, vue, 'utf8')
+console.log('written', out)
