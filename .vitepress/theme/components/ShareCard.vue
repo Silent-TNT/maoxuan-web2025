@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { useData } from 'vitepress'
+import { BaiduTrack } from '../baidu-tongji.mjs'
 
 const { page } = useData()
 
@@ -66,6 +67,7 @@ const generateCard = async () => {
         scrollX: 0,
       })
       cardImage.value = canvas.toDataURL('image/png')
+      BaiduTrack.sharePosterGenerate(page.value.title || '')
     } catch (e) {
       console.error('生成失败', e)
     } finally {

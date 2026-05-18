@@ -32,11 +32,17 @@
                   <span class="title">教员咨询室</span>
                 </div>
                 <div class="modal-header-actions">
+                  <a
+                    href="/donate"
+                    class="spark-link-btn"
+                    @click="onSparkDonateClick"
+                  >
+                    注入星火
+                  </a>
                   <button
-                    v-if="showClearBtn"
                     type="button"
                     class="clear-text-btn"
-                    :disabled="sharedIsLoading"
+                    :disabled="sharedIsLoading || !showClearBtn"
                     @click="handleClearChat"
                   >
                     清空对话
@@ -136,6 +142,7 @@ import {
   clearChat,
   canClearChat,
 } from '../chat-state.mjs'
+import { BaiduTrack } from '../baidu-tongji.mjs'
 
 defineProps({ mode: { type: String, default: 'inline' } })
 const { frontmatter } = useData()
@@ -158,6 +165,7 @@ const sampleQuestions = [
 
 const openModal = async () => {
   openChat()
+  BaiduTrack.chatOpen(isHome.value ? 'home' : 'article')
   scrollToBottom()
   await nextTick()
   bindVisualViewport()
@@ -208,6 +216,11 @@ const closeModal = () => {
   closeChat()
 }
 
+function onSparkDonateClick() {
+  BaiduTrack.chatSparkLink()
+  closeModal()
+}
+
 const handleClearChat = async () => {
   if (sharedIsLoading.value || !canClearChat()) return
   if (typeof window !== 'undefined' && !window.confirm('确定清空当前对话吗？')) return
@@ -246,6 +259,9 @@ const sendMessage = async () => {
     if (!response.ok) {
       throw new Error(data.error || `请求失败 (${response.status})`)
     }
+    const ragLabel = data.rag ? 'rag' : 'no_rag'
+    BaiduTrack.chatSend(ragLabel)
+
     sharedMessages.value.push({
       role: 'assistant',
       content: data.reply || '（教员正在沉思）',
@@ -485,10 +501,15 @@ function formatMessage(text) {
   display: flex;
   align-items: center;
   gap: 4px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
+.spark-link-btn,
 .clear-text-btn,
 .close-text-btn {
+  display: inline-flex;
+  align-items: center;
   background: none;
   border: none;
   color: var(--vp-c-text-2);
@@ -499,9 +520,13 @@ function formatMessage(text) {
   border-radius: 4px;
   transition: all 0.2s ease;
 }
-.clear-text-btn:hover:not(:disabled) {
+.spark-link-btn {
+  text-decoration: none;
+}
+.clear-text-btn:hover:not(:disabled),
+.spark-link-btn:hover {
   background: var(--vp-c-brand-soft);
-  color: var(--vp-c-brand-1);
+  color: var(--vp-c-brand-1, #c82829);
 }
 .clear-text-btn:disabled {
   opacity: 0.45;

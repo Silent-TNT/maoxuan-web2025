@@ -1,6 +1,18 @@
 import { defineConfig } from 'vitepress'
 import { devChatApiPlugin } from './plugins/dev-chat-api.mjs'
 
+const baiduTongjiId = (process.env.VITE_BAIDU_TONGJI_ID || '').trim()
+const baiduHead =
+  baiduTongjiId && /^[0-9a-fA-F]+$/.test(baiduTongjiId)
+    ? [
+        [
+          'script',
+          {},
+          `var _hmt=_hmt||[];(function(){var hm=document.createElement("script");hm.src="https://hm.baidu.com/hm.js?${baiduTongjiId}";var s=document.getElementsByTagName("script")[0];s.parentNode.insertBefore(hm,s);})();`,
+        ],
+      ]
+    : []
+
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
   title: "毛泽东选集在线阅读",
@@ -19,6 +31,7 @@ export default defineConfig({
       },
     ],
     ['link', { rel: 'icon', href: '/logo.png' }],
+    ...baiduHead,
   ],
   sitemap: {
     hostname: 'https://xuemaoxuan.com'

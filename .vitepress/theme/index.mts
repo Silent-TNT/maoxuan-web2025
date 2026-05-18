@@ -6,6 +6,7 @@ import ShareCard from './components/ShareCard.vue'
 import Spark2049 from './components/Spark2049.vue'
 import DailyQuote from './components/DailyQuote.vue'
 import AiChat from './components/AiChat.vue'
+import { trackPageview } from './baidu-tongji.mjs'
 
 export default {
   extends: DefaultTheme,
@@ -25,10 +26,16 @@ export default {
     })
   },
   
-  enhanceApp({ app }) {
+  enhanceApp({ app, router }) {
     app.component('ShareCard', ShareCard)
     app.component('Spark2049', Spark2049)
     app.component('DailyQuote', DailyQuote)
     app.component('AiChat', AiChat)
-  }
+
+    if (router?.onAfterRouteChanged) {
+      router.onAfterRouteChanged((to) => {
+        trackPageview(to || undefined)
+      })
+    }
+  },
 }

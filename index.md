@@ -36,17 +36,19 @@ features:
     linkText: 进入阅读
 ---
 <div align="center" style="margin-top: 60px; padding: 20px; background-color: var(--vp-c-bg-soft); border-radius: 10px;">
-  <h3 style="margin-top: 0">手机扫码，随身阅读</h3>
+  <h3 style="margin-top: 0">微信扫码 加入社群</h3>
   
-  <img src="/mobile-qr.png" alt="手机访问二维码" width="150" style="margin-top: 10px; border-radius: 6px;">
+  <img src="/mobile-qr.jpg" alt="公众号二维码 - 沉默的TNT" width="150" style="margin-top: 10px; border-radius: 6px;">
   
   <p style="
     color: var(--vp-c-text-2); 
     font-size: 13px; 
     margin-top: 10px; 
-    text-align: center; /* 强制居中 */
-    text-indent: 0;     /* ❌ 取消缩进 (关键！) */
+    text-align: center;
+    text-indent: 0;
+    line-height: 1.7;
   ">
-    iPhone/Android/平板 完美适配
+    公众号二维码 沉默的TNT<br>
+    深度思考者的自留地
   </p>
 </div>
