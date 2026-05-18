@@ -7,13 +7,16 @@ import fs from 'fs'
 import path from 'path'
 import zlib from 'zlib'
 import { fileURLToPath } from 'url'
+import { config as loadEnv } from 'dotenv'
+
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
+loadEnv({ path: path.join(root, '.env') })
 import {
   buildChunksFromRepo,
   embedInBatches,
   getEmbeddingConfig,
 } from './lib.mjs'
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const outGz = path.join(root, 'api/rag-index.json.gz')
 const outJson = path.join(root, 'api/rag-index.json')
 

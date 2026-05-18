@@ -5,9 +5,11 @@ import { fileURLToPath } from 'url'
 import {
   cosineSimilarity,
   embedTexts,
+  extractQueryTerms,
   getEmbeddingConfig,
   pickDiverseHits,
   RAG_DEFAULTS,
+  scoreChunkByTerms,
   toHitRecord,
 } from '../scripts/rag/lib.mjs'
 
@@ -45,34 +47,25 @@ export function shouldSkipRetrieval(query) {
 }
 
 function keywordRetrieve(index, query, topK, minScore) {
-  const terms = [
-    ...new Set(
-      query
-        .replace(/[^\u4e00-\u9fa5a-zA-Z0-9]/g, ' ')
-        .split(/\s+/)
-        .map((t) => t.trim())
-        .filter((t) => t.length >= 2)
-    ),
-  ]
-  const scored = index.chunks.map((chunk) => {
-    const hay = `${chunk.title} ${chunk.text}`
-    let score = 0
-    for (const t of terms) {
-      if (hay.includes(t)) score += 1
-    }
-    if (terms.length === 0) score = 0
-    else score = score / terms.length
-    return { chunk, score }
-  })
-  scored.sort((a, b) => b.score - a.score)
-  const min = index.mode === 'keyword' ? Math.max(minScore * 0.5, 0.15) : minScore
-  const qualified = scored.filter((x) => x.score >= min)
-  const picked = pickDiverseHits(qualified.length ? qualified : scored, topK, 1)
-  const hits = picked.map(toHitRecord)
-  if (hits.length === 0) {
-    const fallback = pickDiverseHits(scored, Math.min(3, topK), 1).map(toHitRecord)
-    return { hits: fallback, context: formatContext(fallback) }
+  const terms = extractQueryTerms(query)
+  if (!terms.length) {
+    return { hits: [], context: '' }
   }
+
+  const scored = index.chunks
+    .map((chunk) => ({
+      chunk,
+      score: scoreChunkByTerms(chunk, terms),
+    }))
+    .filter((x) => x.score > 0)
+    .sort((a, b) => b.score - a.score)
+
+  const min = Math.max(minScore * 0.35, 0.12)
+  const qualified = scored.filter((x) => x.score >= min)
+  const picked = pickDiverseHits(qualified, topK, 1)
+  const hits = picked.map(toHitRecord)
+
+  // 无合格结果时不回退到「索引前 N 篇」，避免每次显示相同五篇
   return { hits, context: formatContext(hits) }
 }
 
@@ -101,14 +94,12 @@ export async function retrieveContext(query, options = {}) {
   scored.sort((a, b) => b.score - a.score)
 
   const qualified = scored.filter((x) => x.score >= minScore)
-  const picked = pickDiverseHits(qualified.length ? qualified : scored, topK, 1)
-  const hits = picked.map(toHitRecord)
-
-  if (hits.length === 0) {
-    const fallback = pickDiverseHits(scored, Math.min(3, topK), 1).map(toHitRecord)
-    return { hits: fallback, context: formatContext(fallback) }
+  let picked = pickDiverseHits(qualified, topK, 1)
+  // 略低于阈值但最相关的一篇仍可保留，避免空引用
+  if (picked.length === 0 && scored[0]?.score >= minScore * 0.85) {
+    picked = pickDiverseHits(scored.slice(0, 8), Math.min(2, topK), 1)
   }
-
+  const hits = picked.map(toHitRecord)
   return { hits, context: formatContext(hits) }
 }
 

@@ -178,6 +178,70 @@ export function dedupeHitsByPath(hits) {
   })
 }
 
+const CN_STOPWORDS = new Set([
+  '什么', '怎么', '如何', '为什么', '请问', '教员', '看待', '可以', '我们', '他们',
+  '这个', '那个', '就是', '不是', '一个', '没有', '现在', '觉得',
+  '感觉', '最近', '到底', '精髓', '问题', '事情', '东西', '自己', '真的', '还是',
+  '以及', '因为', '所以', '如果', '但是', '已经', '可能', '应该', '需要', '关于',
+])
+
+/** 中文友好分词：书名、双字/三字片段，避免按空格切分失效 */
+export function extractQueryTerms(query) {
+  const q = (query || '').trim()
+  if (!q) return []
+
+  const terms = new Set()
+
+  for (const t of q.match(/[a-zA-Z0-9]{2,}/gi) || []) {
+    terms.add(t.toLowerCase())
+  }
+
+  const book = q.match(/《([^》]{2,24})》/)
+  if (book) {
+    const title = book[1].trim()
+    terms.add(title)
+    const t = title.replace(/[^\u4e00-\u9fa5]/g, '')
+    for (let i = 0; i < t.length - 1; i++) {
+      terms.add(t.slice(i, i + 2))
+      if (i < t.length - 2) terms.add(t.slice(i, i + 3))
+    }
+  }
+
+  const chinese = q.replace(/[^\u4e00-\u9fa5]/g, '')
+  if (chinese.length >= 2 && chinese.length <= 10) {
+    terms.add(chinese)
+  }
+  for (let i = 0; i < chinese.length - 1; i++) {
+    terms.add(chinese.slice(i, i + 2))
+    if (i < chinese.length - 2) terms.add(chinese.slice(i, i + 3))
+  }
+
+  for (const t of terms) {
+    if (t.length < 2 || CN_STOPWORDS.has(t)) terms.delete(t)
+  }
+
+  return [...terms]
+}
+
+export function scoreChunkByTerms(chunk, terms) {
+  if (!terms.length) return 0
+  const title = chunk.title || ''
+  const text = chunk.text || ''
+  let matched = 0
+  let weight = 0
+  for (const t of terms) {
+    if (title.includes(t)) {
+      matched += 1
+      weight += 4
+    } else if (text.includes(t)) {
+      matched += 1
+      weight += 1
+    }
+  }
+  if (matched === 0) return 0
+  return weight / (terms.length * 4)
+}
+
 export function cosineSimilarity(a, b) {
   let dot = 0
   let na = 0

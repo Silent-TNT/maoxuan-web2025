@@ -4,6 +4,7 @@
     "docs:build": "vitepress build",
     "docs:preview": "vitepress preview",
     "rag:build": "node scripts/rag/build-index.mjs",
+    "rag:check": "node scripts/rag/check-embedding.mjs",
     "rag:build:lite": "node scripts/rag/build-index-lite.mjs",
     "rag:chunks": "node scripts/rag/count-chunks.mjs"
   },
