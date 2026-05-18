@@ -2,9 +2,13 @@
   "scripts": {
     "docs:dev": "vitepress dev",
     "docs:build": "vitepress build",
-    "docs:preview": "vitepress preview"
+    "docs:preview": "vitepress preview",
+    "rag:build": "node scripts/rag/build-index.mjs",
+    "rag:build:lite": "node scripts/rag/build-index-lite.mjs",
+    "rag:chunks": "node scripts/rag/count-chunks.mjs"
   },
   "devDependencies": {
+    "dotenv": "^16.4.7",
     "vitepress": "^1.6.4"
   },
   "dependencies": {

@@ -25,7 +25,7 @@
       <Teleport to="body">
         <Transition name="fade-scale">
           <div v-if="isModalOpen" class="chat-modal-overlay" @click.self="closeModal">
-            <div class="chat-modal-window">
+            <div ref="chatModalWindow" class="chat-modal-window">
               <div class="modal-header">
                 <div class="modal-header-left">
                   <span class="icon">★</span>
@@ -53,7 +53,22 @@
                   :key="index"
                   :class="['message', msg.role]"
                 >
-                  <div class="msg-bubble" v-html="formatMessage(msg.content)"></div>
+                  <div class="msg-bubble">
+                    <div class="msg-body" v-html="formatMessage(msg.content)"></div>
+                    <div
+                      v-if="msg.role === 'assistant' && uniqueSources(msg.sources).length"
+                      class="chat-refs"
+                    >
+                      <div class="chat-refs-label">参考</div>
+                      <div class="chat-refs-list">
+                        <a
+                          v-for="s in uniqueSources(msg.sources)"
+                          :key="s.path || s.id"
+                          :href="sourceHref(s)"
+                        >《{{ s.title }}》（{{ s.volume }}）</a>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 <div v-if="sharedIsLoading" class="message assistant">
@@ -75,7 +90,7 @@
               <div class="chat-input-area">
                 <input
                   v-model="userInput"
-                  @keyup.enter="sendMessage"
+                  @keyup.enter="sendMessage" @focus="focusChatInput"
                   placeholder="问问教员..."
                   :disabled="sharedIsLoading"
                   ref="chatInputRef"
@@ -108,7 +123,7 @@
 </template>
 
 <script setup>
-import { nextTick, computed, ref } from 'vue'
+import { nextTick, computed, ref, watch, onUnmounted } from 'vue'
 import { marked } from 'marked'
 import { useData, useRouter } from 'vitepress'
 import {
@@ -131,6 +146,8 @@ const showClearBtn = computed(() => canClearChat())
 const userInput = ref('')
 const messagesContainer = ref(null)
 const chatInputRef = ref(null)
+const chatModalWindow = ref(null)
+let viewportCleanup = null
 
 const sampleQuestions = [
   '请问教员如何看待当今之中国？',
@@ -143,7 +160,48 @@ const openModal = async () => {
   openChat()
   scrollToBottom()
   await nextTick()
-  if (chatInputRef.value) chatInputRef.value.focus()
+  bindVisualViewport()
+}
+
+function bindVisualViewport() {
+  viewportCleanup?.()
+  const vv = window.visualViewport
+  const el = chatModalWindow.value
+  if (!vv || !el) return
+
+  const update = () => {
+    const insetBottom = Math.max(0, window.innerHeight - vv.height - vv.offsetTop)
+    el.style.setProperty('--vv-bottom-inset', `${insetBottom}px`)
+  }
+  update()
+  vv.addEventListener('resize', update)
+  vv.addEventListener('scroll', update)
+  viewportCleanup = () => {
+    vv.removeEventListener('resize', update)
+    vv.removeEventListener('scroll', update)
+    el.style.removeProperty('--vv-bottom-inset')
+  }
+}
+
+watch(isModalOpen, (open) => {
+  if (open) {
+    nextTick(() => bindVisualViewport())
+  } else {
+    viewportCleanup?.()
+    viewportCleanup = null
+  }
+})
+
+onUnmounted(() => {
+  viewportCleanup?.()
+})
+
+const focusChatInput = async () => {
+  await nextTick()
+  chatInputRef.value?.focus({ preventScroll: true })
+  setTimeout(() => {
+    chatInputRef.value?.scrollIntoView({ block: 'end', behavior: 'smooth' })
+  }, 320)
 }
 
 const closeModal = () => {
@@ -184,16 +242,22 @@ const sendMessage = async () => {
       body: JSON.stringify({ messages: historyMessages }),
     })
 
-    if (!response.ok) throw new Error('网络异常')
     const data = await response.json()
+    if (!response.ok) {
+      throw new Error(data.error || `请求失败 (${response.status})`)
+    }
     sharedMessages.value.push({
       role: 'assistant',
       content: data.reply || '（教员正在沉思）',
+      sources: data.sources?.length ? uniqueSources(data.sources) : undefined,
     })
-  } catch {
+  } catch (err) {
+    const hint = err?.message?.includes('请求失败') || err?.message?.includes('API')
+      ? err.message
+      : '网络似乎出了点问题，我们稍后再谈。'
     sharedMessages.value.push({
       role: 'assistant',
-      content: '网络似乎出了点问题，我们稍后再谈。',
+      content: hint,
     })
   } finally {
     sharedIsLoading.value = false
@@ -206,6 +270,22 @@ const scrollToBottom = async () => {
   if (messagesContainer.value) {
     messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
   }
+}
+
+function uniqueSources(sources) {
+  if (!sources?.length) return []
+  const seen = new Set()
+  return sources.filter((s) => {
+    const key = s.path || s.title
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+}
+
+function sourceHref(s) {
+  const p = s.path || ''
+  return p.endsWith('.html') ? p : `${p}.html`
 }
 
 function normalizeArticlePath(href) {
@@ -272,20 +352,20 @@ function formatMessage(text) {
 }
 
 .chat-trigger-card {
-  background: #ffffff;
+  background: var(--vp-c-bg);
   border-radius: 12px;
-  border: 1px solid #eaeaea;
+  border: 1px solid var(--vp-c-divider);
   padding: 20px 24px;
   display: flex;
   flex-direction: column;
   gap: 12px;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
   transition: all 0.3s ease;
 }
 .chat-trigger-card:hover {
-  border-color: #333;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  border-color: var(--vp-c-text-2);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
   transform: translateY(-2px);
 }
 .trigger-header {
@@ -294,25 +374,25 @@ function formatMessage(text) {
   gap: 8px;
   font-weight: bold;
   font-size: 16px;
-  color: #1a1a1a;
+  color: var(--vp-c-text-1);
 }
 .trigger-header .icon {
-  color: #c82829;
+  color: var(--vp-c-brand-1);
   font-size: 18px;
 }
 .trigger-fake-input {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: #f9f9f9;
+  background: var(--vp-c-bg-soft);
   border-radius: 8px;
   padding: 12px 16px;
-  color: #888;
+  color: var(--vp-c-text-3);
   font-size: 14px;
 }
 .send-icon {
-  background: #333;
-  color: white;
+  background: var(--vp-c-text-1);
+  color: var(--vp-c-bg);
   width: 28px;
   height: 28px;
   display: flex;
@@ -323,7 +403,7 @@ function formatMessage(text) {
 
 .chat-float-wrapper {
   position: fixed;
-  bottom: 30px;
+  bottom: calc(30px + env(safe-area-inset-bottom, 0px));
   right: 30px;
   z-index: 9000;
 }
@@ -334,28 +414,28 @@ function formatMessage(text) {
   z-index: auto;
 }
 .chat-toggle-btn {
-  background: #333;
-  color: white;
+  background: var(--vp-c-text-1);
+  color: var(--vp-c-bg);
   padding: 12px 24px;
   border-radius: 30px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   font-weight: bold;
   border: none;
   cursor: pointer;
-  transition: transform 0.2s ease, background 0.2s ease;
+  transition: transform 0.2s ease, opacity 0.2s ease;
 }
 .chat-toggle-btn:hover {
-  background: #111;
+  opacity: 0.9;
   transform: scale(1.05);
 }
 
 .chat-modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(0, 0, 0, 0.4);
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  height: 100dvh;
+  background: rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(6px);
   z-index: 99999;
   display: flex;
@@ -367,12 +447,16 @@ function formatMessage(text) {
   width: 100%;
   max-width: 850px;
   height: 85vh;
-  background: #fff;
+  height: 85dvh;
+  max-height: 85dvh;
+  background: var(--vp-c-bg);
+  color: var(--vp-c-text-1);
   border-radius: 16px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+  --vv-bottom-inset: 0px;
 }
 
 .modal-header {
@@ -380,8 +464,9 @@ function formatMessage(text) {
   justify-content: space-between;
   align-items: center;
   padding: 16px 24px;
-  background: #fafafa;
-  border-bottom: 1px solid #eee;
+  background: var(--vp-c-bg-soft);
+  border-bottom: 1px solid var(--vp-c-divider);
+  flex-shrink: 0;
 }
 .modal-header-left {
   display: flex;
@@ -389,9 +474,10 @@ function formatMessage(text) {
   gap: 8px;
   font-weight: bold;
   font-size: 16px;
+  color: var(--vp-c-text-1);
 }
 .modal-header-left .icon {
-  color: #c82829;
+  color: var(--vp-c-brand-1);
   font-size: 18px;
 }
 
@@ -405,7 +491,7 @@ function formatMessage(text) {
 .close-text-btn {
   background: none;
   border: none;
-  color: #555;
+  color: var(--vp-c-text-2);
   font-size: 14px;
   font-weight: bold;
   cursor: pointer;
@@ -414,30 +500,32 @@ function formatMessage(text) {
   transition: all 0.2s ease;
 }
 .clear-text-btn:hover:not(:disabled) {
-  background: #fdeaea;
-  color: #c82829;
+  background: var(--vp-c-brand-soft);
+  color: var(--vp-c-brand-1);
 }
 .clear-text-btn:disabled {
   opacity: 0.45;
   cursor: not-allowed;
 }
 .close-text-btn:hover {
-  background: #e8e8e8;
-  color: #111;
+  background: var(--vp-c-bg-soft);
+  color: var(--vp-c-text-1);
 }
 
 .chat-messages {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   padding: 24px;
-  background: #ffffff;
+  background: var(--vp-c-bg);
   scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
 }
 .chat-messages::-webkit-scrollbar {
   width: 6px;
 }
 .chat-messages::-webkit-scrollbar-thumb {
-  background-color: #ddd;
+  background-color: var(--vp-c-divider);
   border-radius: 4px;
 }
 
@@ -459,20 +547,20 @@ function formatMessage(text) {
   border-radius: 12px;
   font-size: 15px;
   line-height: 1.6;
-  color: #333;
+  color: var(--vp-c-text-1);
 }
 .message.user .msg-bubble {
-  background: #f5f5f5;
+  background: var(--vp-c-bg-soft);
   border-bottom-right-radius: 2px;
 }
 .message.assistant .msg-bubble {
-  background: #fff;
-  border: 1px solid #eaeaea;
+  background: var(--vp-c-bg);
+  border: 1px solid var(--vp-c-divider);
   border-bottom-left-radius: 2px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 .message.assistant .msg-bubble.thinking {
-  color: #888;
+  color: var(--vp-c-text-3);
   font-style: italic;
   border-style: dashed;
   animation: thinking-pulse 1.2s ease-in-out infinite;
@@ -496,11 +584,39 @@ function formatMessage(text) {
 .msg-bubble :deep(ul) {
   padding-left: 20px;
 }
-.msg-bubble :deep(a) {
-  color: #c82829;
+.msg-body :deep(a) {
+  color: var(--vp-c-brand-1);
   text-decoration: none;
-  border-bottom: 1px solid #c82829;
+  border-bottom: 1px solid var(--vp-c-brand-1);
   font-weight: bold;
+}
+.chat-refs {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--vp-c-divider);
+}
+.chat-refs-label {
+  font-size: 12px;
+  color: var(--vp-c-text-3);
+  margin-bottom: 8px;
+  letter-spacing: 0.02em;
+}
+.chat-refs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.chat-refs-list a {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--vp-c-text-3);
+  font-weight: normal;
+  text-decoration: none;
+  border-bottom: none;
+  transition: color 0.15s ease;
+}
+.chat-refs-list a:hover {
+  color: var(--vp-c-brand-1);
 }
 
 .quick-start-grid {
@@ -510,9 +626,9 @@ function formatMessage(text) {
   margin-top: 10px;
 }
 .quick-tag {
-  background: #fff;
-  border: 1px solid #eaeaea;
-  color: #555;
+  background: var(--vp-c-bg);
+  border: 1px solid var(--vp-c-divider);
+  color: var(--vp-c-text-2);
   padding: 12px 16px;
   border-radius: 8px;
   font-size: 14px;
@@ -522,36 +638,42 @@ function formatMessage(text) {
   line-height: 1.4;
 }
 .quick-tag:hover {
-  border-color: #999;
-  color: #111;
-  background: #fafafa;
+  border-color: var(--vp-c-text-3);
+  color: var(--vp-c-text-1);
+  background: var(--vp-c-bg-soft);
 }
 
 .chat-input-area {
   display: flex;
+  flex-shrink: 0;
   padding: 20px 24px;
-  background: #fff;
-  border-top: 1px solid #eee;
+  padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px) + var(--vv-bottom-inset, 0px));
+  background: var(--vp-c-bg);
+  border-top: 1px solid var(--vp-c-divider);
   gap: 16px;
 }
 .chat-input-area input {
   flex: 1;
   padding: 14px 20px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--vp-c-divider);
   border-radius: 30px;
   outline: none;
-  font-size: 15px;
-  background: #f9f9f9;
+  font-size: 16px;
+  background: var(--vp-c-bg-soft);
+  color: var(--vp-c-text-1);
   transition: all 0.2s ease;
 }
+.chat-input-area input::placeholder {
+  color: var(--vp-c-text-3);
+}
 .chat-input-area input:focus {
-  border-color: #999;
-  background: #fff;
+  border-color: var(--vp-c-text-3);
+  background: var(--vp-c-bg);
 }
 .send-btn {
   padding: 0 24px;
-  background: #333;
-  color: white;
+  background: var(--vp-c-text-1);
+  color: var(--vp-c-bg);
   border: none;
   border-radius: 30px;
   cursor: pointer;
@@ -559,12 +681,13 @@ function formatMessage(text) {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 .send-btn:hover:not(:disabled) {
-  background: #111;
+  opacity: 0.88;
 }
 .send-btn:disabled {
-  background: #ccc;
+  opacity: 0.45;
   cursor: not-allowed;
 }
 
@@ -583,20 +706,38 @@ function formatMessage(text) {
     padding: 0 24px;
   }
   .chat-float-wrapper:not(.is-home) {
-    bottom: 20px;
-    right: 20px;
+    bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+    right: 16px;
+  }
+
+  .chat-modal-overlay {
+    align-items: stretch;
   }
 
   .chat-modal-window {
-    height: 100vh;
+    height: 100%;
+    height: 100dvh;
+    max-height: 100dvh;
     border-radius: 0;
     max-width: 100%;
   }
+
+  .modal-header {
+    padding-top: calc(12px + env(safe-area-inset-top, 0px));
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .chat-messages {
+    padding: 16px;
+  }
+
   .quick-start-grid {
     grid-template-columns: 1fr;
   }
   .chat-input-area {
     padding: 12px 16px;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px) + var(--vv-bottom-inset, 0px));
     gap: 10px;
   }
   .send-btn {

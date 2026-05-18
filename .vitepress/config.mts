@@ -1,12 +1,24 @@
 import { defineConfig } from 'vitepress'
+import { devChatApiPlugin } from './plugins/dev-chat-api.mjs'
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
   title: "毛泽东选集在线阅读",
+  vite: {
+    plugins: [devChatApiPlugin()],
+  },
   description: "毛泽东选集在线阅读平台。极简排版，纯净无广告，手机平板适配，为您提供最沉浸式的经典阅读体验。",
   head: [
     ['meta', { name: 'keywords', content: '毛泽东选集,毛选,毛选在线阅读,无广告阅读,毛选txt' }],
-    ['link', { rel: 'icon', href: '/logo.png' }]
+    [
+      'meta',
+      {
+        name: 'viewport',
+        content:
+          'width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content',
+      },
+    ],
+    ['link', { rel: 'icon', href: '/logo.png' }],
   ],
   sitemap: {
     hostname: 'https://xuemaoxuan.com'

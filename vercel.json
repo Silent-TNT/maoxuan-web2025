@@ -2,6 +2,11 @@
   "framework": null,
   "buildCommand": "npm run docs:build",
   "outputDirectory": ".vitepress/dist",
+  "functions": {
+    "api/chat.js": {
+      "includeFiles": "api/rag-index.json.gz"
+    }
+  },
   "redirects": [
     {
       "source": "/第四卷/132-关于淮海战役的作战方针",
