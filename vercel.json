@@ -3,8 +3,8 @@
   "buildCommand": "npm run docs:build",
   "outputDirectory": ".vitepress/dist",
   "functions": {
-    "api/chat.js": {
-      "includeFiles": "api/rag-index.json.gz"
+    "api/chat.mjs": {
+      "includeFiles": "{api/rag-index.json.gz,scripts/rag/lib.mjs}"
     }
   },
   "redirects": [
