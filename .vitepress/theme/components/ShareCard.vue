@@ -1,7 +1,11 @@
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useData } from 'vitepress'
 import { BaiduTrack } from '../baidu-tongji.mjs'
+import {
+  sharePosterRequest,
+  cleanQuoteText,
+} from '../share-poster.mjs'
 
 const { page } = useData()
 
@@ -10,6 +14,8 @@ const visible = ref(false)
 const showModal = ref(false)
 const buttonStyle = ref({ top: '0px', left: '0px' })
 const quote = ref('')
+const posterBlocks = ref([])
+const posterSource = ref('')
 const generating = ref(false)
 const cardImage = ref(null)
 
@@ -18,18 +24,18 @@ const handleSelection = () => {
 
   const selection = window.getSelection()
   let text = selection.toString().trim()
+  text = cleanQuoteText(text)
 
-  // ✅ 强力正则清洗 (保留)
-  text = text.replace(/([\(（\[【][^\)）\]】]{0,5}\d+[^\)）\]】]{0,5}[\)）\]】]|[⑴-⒇])/g, '')
-
-  if (text.length > 5 && text.length < 1500) { 
+  if (text.length > 5 && text.length < 1500) {
     quote.value = text
+    posterBlocks.value = []
+    posterSource.value = page.value.title || ''
     const range = selection.getRangeAt(0)
     const rect = range.getBoundingClientRect()
-    
+
     buttonStyle.value = {
       top: `${window.scrollY + rect.top - 45}px`,
-      left: `${rect.left + (rect.width / 2) - 50}px`
+      left: `${rect.left + rect.width / 2 - 50}px`,
     }
     visible.value = true
   } else {
@@ -42,20 +48,20 @@ const generateCard = async () => {
     try {
       html2canvas = (await import('html2canvas')).default
     } catch (e) {
-      console.error("插件加载失败", e)
+      console.error('插件加载失败', e)
       return
     }
   }
-  
+
   visible.value = false
   showModal.value = true
   generating.value = true
   cardImage.value = null
 
   await nextTick()
-  
+
   const element = document.getElementById('poster-node')
-  
+
   if (element) {
     element.style.display = 'block'
     try {
@@ -67,7 +73,7 @@ const generateCard = async () => {
         scrollX: 0,
       })
       cardImage.value = canvas.toDataURL('image/png')
-      BaiduTrack.sharePosterGenerate(page.value.title || '')
+      BaiduTrack.sharePosterGenerate(posterSource.value || page.value.title || '')
     } catch (e) {
       console.error('生成失败', e)
     } finally {
@@ -82,8 +88,21 @@ const generateCard = async () => {
 const closeModal = () => {
   showModal.value = false
   cardImage.value = null
-  window.getSelection().removeAllRanges()
+  posterSource.value = ''
+  posterBlocks.value = []
+  window.getSelection()?.removeAllRanges()
 }
+
+watch(sharePosterRequest, (req) => {
+  if (!req) return
+  const hasBlocks = req.blocks?.length > 0
+  if (!hasBlocks && !req.quote) return
+  quote.value = req.quote || ''
+  posterBlocks.value = hasBlocks ? req.blocks : []
+  posterSource.value = '教员咨询室'
+  visible.value = false
+  generateCard()
+})
 
 onMounted(() => {
   document.addEventListener('mouseup', handleSelection)
@@ -101,11 +120,11 @@ onUnmounted(() => {
 
 <template>
   <div class="share-wrapper">
-    <div 
-      v-if="visible" 
-      class="float-btn" 
+    <div
+      v-if="visible"
+      class="float-btn"
       :style="buttonStyle"
-      @mousedown.prevent="generateCard" 
+      @mousedown.prevent="generateCard"
       @touchstart.prevent="generateCard"
     >
       <span class="icon">✨</span> 生成金句卡片
@@ -115,25 +134,36 @@ onUnmounted(() => {
       <div class="modal-content">
         <div id="poster-node" class="poster-card" style="display: none;">
           <div class="poster-header">“</div>
-          <div class="poster-body">{{ quote }}</div>
-          
+          <div v-if="posterBlocks.length" class="poster-body poster-body-chat">
+            <div
+              v-for="(block, idx) in posterBlocks"
+              :key="idx"
+              class="poster-qa-block"
+              :class="block.role"
+            >
+              <div class="poster-qa-label">{{ block.role === 'user' ? '问' : '答' }}</div>
+              <div class="poster-qa-text">{{ block.text }}</div>
+            </div>
+          </div>
+          <div v-else class="poster-body">{{ quote }}</div>
+
           <div class="poster-footer">
             <div class="footer-info">
               <div class="main-author">毛泽东选集</div>
-              <div class="sub-source">{{ page.title }}</div>
+              <div class="sub-source">{{ posterSource || page.title }}</div>
               <div class="site">xuemaoxuan.com · 学毛选</div>
             </div>
           </div>
-          
+
           <div class="noise-bg"></div>
         </div>
 
         <div class="result-area" v-if="!generating && cardImage">
           <h3 class="tip-text">长按图片保存分享</h3>
-          <img :src="cardImage" class="final-img" alt="分享卡片">
+          <img :src="cardImage" class="final-img" alt="分享卡片" />
           <button class="close-btn" @click="closeModal">关闭</button>
         </div>
-        
+
         <div v-if="generating" class="loading-box">
           <div class="loading-spinner"></div>
           <p>正在绘制...</p>
@@ -161,9 +191,9 @@ onUnmounted(() => {
 
 .modal-mask {
   position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-  background: rgba(0,0,0,0.9); z-index: 2000;
+  background: rgba(0,0,0,0.9); z-index: 200000;
   display: flex; justify-content: center; align-items: center;
-  backdrop-filter: blur(8px); overflow: hidden; 
+  backdrop-filter: blur(8px); overflow: hidden;
 }
 
 .modal-content {
@@ -173,7 +203,7 @@ onUnmounted(() => {
 }
 
 .poster-card {
-  width: 320px; 
+  width: 320px;
   background: #1a1a1a; padding: 35px 30px;
   border: 1px solid #333; color: #fff;
   font-family: "Songti SC", "SimSun", serif;
@@ -187,24 +217,63 @@ onUnmounted(() => {
 }
 
 .poster-header {
-  font-size: 100px; color: #d22b2b; line-height: 1.0; 
+  font-size: 100px; color: #d22b2b; line-height: 1.0;
   font-family: serif; opacity: 0.9;
-  margin-top: 35px; margin-bottom: -20px; 
+  margin-top: 35px; margin-bottom: -20px;
 }
 
 .poster-body {
   font-size: 16px; line-height: 1.8; text-align: justify;
   margin-bottom: 40px; font-weight: 300; z-index: 1; position: relative;
   text-shadow: 0 1px 1px rgba(0,0,0,0.5);
+  white-space: pre-wrap;
 }
 
-/* 🔴 核心修改：紧凑型底部 */
+.poster-body-chat {
+  white-space: normal;
+}
+
+.poster-qa-block {
+  margin-bottom: 20px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+}
+.poster-qa-block:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.poster-qa-label {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.35em;
+  color: #d22b2b;
+  margin-bottom: 10px;
+  padding: 2px 0;
+}
+.poster-qa-block.user .poster-qa-label {
+  color: #b8b8b8;
+}
+
+.poster-qa-text {
+  font-size: 15px;
+  line-height: 1.85;
+  text-align: justify;
+  color: #f0f0f0;
+}
+.poster-qa-block.user .poster-qa-text {
+  color: #d8d8d8;
+  font-size: 14px;
+}
+
 .poster-footer {
-  display: flex; 
-  flex-direction: column; /* 恢复垂直排列 */
-  align-items: flex-start; /* 左对齐 */
-  border-top: 1px solid rgba(255,255,255,0.1); 
-  padding-top: 15px; /* 减小顶部间距 */
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  border-top: 1px solid rgba(255,255,255,0.1);
+  padding-top: 15px;
   z-index: 1; position: relative;
 }
 
@@ -214,25 +283,25 @@ onUnmounted(() => {
 }
 
 .main-author {
-  font-size: 16px; font-weight: bold; color: #fff; 
-  margin-bottom: 3px; /* 极小的间距 */
+  font-size: 16px; font-weight: bold; color: #fff;
+  margin-bottom: 3px;
   letter-spacing: 1px;
   line-height: 1.2;
 }
 
 .sub-source {
-  font-size: 13px; color: #aaa; 
-  font-family: "Songti SC", "SimSun", serif; 
-  margin-bottom: 5px; /* 稍微拉开一点和域名的距离 */
+  font-size: 13px; color: #aaa;
+  font-family: "Songti SC", "SimSun", serif;
+  margin-bottom: 5px;
   letter-spacing: 1px;
-  line-height: 1.3; /* 防止篇名太长换行时挤在一起 */
+  line-height: 1.3;
 }
 
 .site {
-  font-size: 11px; color: #666; 
+  font-size: 11px; color: #666;
   font-family: sans-serif; letter-spacing: 0.5px;
-  text-transform: lowercase; /* 强制小写 */
-  margin-bottom: 0; /* 最后一行不需要下边距 */
+  text-transform: lowercase;
+  margin-bottom: 0;
   line-height: 1;
 }
 

@@ -24,7 +24,8 @@
     <ClientOnly>
       <Teleport to="body">
         <Transition name="fade-scale">
-          <div v-if="isModalOpen" class="chat-modal-overlay" @click.self="closeModal">
+          <div v-if="isModalOpen" class="chat-modal-overlay">
+            <div class="chat-modal-backdrop" @click.self="closeModal" />
             <div ref="chatModalWindow" class="chat-modal-window">
               <div class="modal-header">
                 <div class="modal-header-left">
@@ -32,6 +33,22 @@
                   <span class="title">教员咨询室</span>
                 </div>
                 <div class="modal-header-actions">
+                  <button
+                    type="button"
+                    class="history-toggle-btn"
+                    :class="{ active: showSessionSidebar }"
+                    @click="toggleSessionSidebar"
+                  >
+                    {{ showSessionSidebar ? '收起列表' : '历史对话' }}
+                  </button>
+                  <button
+                    type="button"
+                    class="new-chat-btn"
+                    :disabled="sharedIsLoading"
+                    @click="handleNewSession"
+                  >
+                    新对话
+                  </button>
                   <a
                     href="/donate"
                     class="spark-link-btn"
@@ -39,20 +56,88 @@
                   >
                     注入星火
                   </a>
-                  <button
-                    type="button"
-                    class="clear-text-btn"
-                    :disabled="sharedIsLoading || !showClearBtn"
-                    @click="handleClearChat"
-                  >
-                    清空对话
-                  </button>
                   <button type="button" class="close-text-btn" @click="closeModal">
                     收起
                   </button>
                 </div>
               </div>
 
+              <div class="chat-modal-body">
+                <aside
+                  v-show="showSessionSidebar"
+                  class="session-sidebar"
+                >
+                  <button
+                    type="button"
+                    class="sidebar-new-btn"
+                    :disabled="sharedIsLoading"
+                    @click="handleNewSession"
+                  >
+                    + 新对话
+                  </button>
+                  <ul class="session-list">
+                    <li
+                      v-for="session in chatSessions"
+                      :key="session.id"
+                      :class="['session-item', { active: session.id === activeSessionId }]"
+                    >
+                      <button
+                        type="button"
+                        class="session-select-btn"
+                        :disabled="sharedIsLoading"
+                        @click="handleSwitchSession(session.id)"
+                      >
+                        <span class="session-title">{{ session.title }}</span>
+                      </button>
+                      <div class="session-menu-wrap">
+                        <button
+                          type="button"
+                          class="session-menu-btn"
+                          :disabled="sharedIsLoading"
+                          aria-label="更多操作"
+                          @click.stop="toggleSessionMenu(session.id)"
+                        >
+                          ⋮
+                        </button>
+                        <div
+                          v-if="openSessionMenuId === session.id"
+                          class="session-menu-dropdown"
+                        >
+                          <button
+                            type="button"
+                            class="session-menu-item"
+                            @click="handleShareSession(session.id)"
+                          >
+                            分享
+                          </button>
+                          <button
+                            type="button"
+                            class="session-menu-item"
+                            @click="handleRenameSession(session.id, session.title)"
+                          >
+                            重命名
+                          </button>
+                          <button
+                            type="button"
+                            class="session-menu-item danger"
+                            :disabled="chatSessions.length <= 1"
+                            @click="handleDeleteSession(session.id)"
+                          >
+                            删除
+                          </button>
+                        </div>
+                      </div>
+                    </li>
+                  </ul>
+                </aside>
+
+                <div
+                  v-if="showSessionSidebar"
+                  class="session-sidebar-backdrop"
+                  @click="showSessionSidebar = false"
+                />
+
+                <div class="chat-main">
               <div class="chat-messages" ref="messagesContainer" @click.capture="handleArticleLinkClick">
                 <div
                   v-for="(msg, index) in sharedMessages"
@@ -120,16 +205,20 @@
                   ><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
                 </button>
               </div>
+                </div>
+              </div>
             </div>
           </div>
         </Transition>
       </Teleport>
+      <ChatDialog />
+      <ChatSharePicker />
     </ClientOnly>
   </div>
 </template>
 
 <script setup>
-import { nextTick, computed, ref, watch, onUnmounted } from 'vue'
+import { nextTick, computed, ref, watch, onMounted, onUnmounted } from 'vue'
 import { marked } from 'marked'
 import { useData, useRouter } from 'vitepress'
 import {
@@ -139,22 +228,102 @@ import {
   isModalOpen,
   openChat,
   closeChat,
-  clearChat,
-  canClearChat,
+  chatSessions,
+  activeSessionId,
+  createSession,
+  switchSession,
+  deleteSession,
+  renameSession,
+  getSessionMessages,
 } from '../chat-state.mjs'
+import { openSharePicker } from '../share-picker.mjs'
+import {
+  showChatAlert,
+  showChatConfirm,
+  showChatPrompt,
+} from '../chat-dialog.mjs'
+import ChatDialog from './ChatDialog.vue'
+import ChatSharePicker from './ChatSharePicker.vue'
 import { BaiduTrack } from '../baidu-tongji.mjs'
 
 defineProps({ mode: { type: String, default: 'inline' } })
 const { frontmatter } = useData()
 const router = useRouter()
 const isHome = computed(() => frontmatter.value.layout === 'home')
-const showClearBtn = computed(() => canClearChat())
 
 const userInput = ref('')
 const messagesContainer = ref(null)
 const chatInputRef = ref(null)
 const chatModalWindow = ref(null)
+const showSessionSidebar = ref(false)
+const openSessionMenuId = ref(null)
 let viewportCleanup = null
+
+const toggleSessionSidebar = () => {
+  showSessionSidebar.value = !showSessionSidebar.value
+  if (!showSessionSidebar.value) {
+    openSessionMenuId.value = null
+  }
+}
+
+const closeSessionMenu = () => {
+  openSessionMenuId.value = null
+}
+
+const toggleSessionMenu = (id) => {
+  openSessionMenuId.value = openSessionMenuId.value === id ? null : id
+}
+
+const handleShareSession = async (sessionId) => {
+  closeSessionMenu()
+  const messages = getSessionMessages(sessionId)
+  if (!openSharePicker(sessionId, messages, WELCOME_TEXT)) {
+    await showChatAlert('该对话还没有可分享的内容，请先与教员交流。', '暂无法分享')
+    return
+  }
+  showSessionSidebar.value = false
+}
+
+const handleNewSession = async () => {
+  if (sharedIsLoading.value) return
+  const result = createSession()
+  if (result === 'empty_active') {
+    await showChatAlert('当前已是新对话，请先提问后再开启新的对话。', '已是新对话')
+    return
+  }
+  userInput.value = ''
+  showSessionSidebar.value = false
+  await nextTick()
+  scrollToBottom()
+  chatInputRef.value?.focus()
+}
+
+const handleSwitchSession = async (id) => {
+  if (sharedIsLoading.value) return
+  switchSession(id)
+  userInput.value = ''
+  showSessionSidebar.value = false
+  await nextTick()
+  scrollToBottom()
+}
+
+const handleDeleteSession = async (id) => {
+  closeSessionMenu()
+  if (sharedIsLoading.value || chatSessions.value.length <= 1) return
+  const ok = await showChatConfirm('删除后无法恢复，确定删除这条对话吗？', '删除对话')
+  if (!ok) return
+  deleteSession(id)
+  await nextTick()
+  scrollToBottom()
+}
+
+const handleRenameSession = async (id, currentTitle) => {
+  closeSessionMenu()
+  if (sharedIsLoading.value) return
+  const next = await showChatPrompt('重命名对话', currentTitle)
+  if (next === null) return
+  renameSession(id, next)
+}
 
 const sampleQuestions = [
   '请问教员如何看待当今之中国？',
@@ -200,8 +369,19 @@ watch(isModalOpen, (open) => {
   }
 })
 
+const onDocumentPointerDown = (e) => {
+  if (!openSessionMenuId.value) return
+  if (e.target.closest('.session-menu-wrap')) return
+  closeSessionMenu()
+}
+
+onMounted(() => {
+  document.addEventListener('pointerdown', onDocumentPointerDown)
+})
+
 onUnmounted(() => {
   viewportCleanup?.()
+  document.removeEventListener('pointerdown', onDocumentPointerDown)
 })
 
 const focusChatInput = async () => {
@@ -213,21 +393,14 @@ const focusChatInput = async () => {
 }
 
 const closeModal = () => {
+  showSessionSidebar.value = false
+  closeSessionMenu()
   closeChat()
 }
 
 function onSparkDonateClick() {
   BaiduTrack.chatSparkLink()
   closeModal()
-}
-
-const handleClearChat = async () => {
-  if (sharedIsLoading.value || !canClearChat()) return
-  if (typeof window !== 'undefined' && !window.confirm('确定清空当前对话吗？')) return
-  clearChat()
-  userInput.value = ''
-  await nextTick()
-  scrollToBottom()
 }
 
 const useSampleQuestion = (question) => {
@@ -451,17 +624,24 @@ function formatMessage(text) {
   width: 100%;
   height: 100%;
   height: 100dvh;
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(6px);
   z-index: 99999;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
+.chat-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(6px);
+}
+
 .chat-modal-window {
+  position: relative;
+  z-index: 1;
   width: 100%;
-  max-width: 850px;
+  max-width: 960px;
   height: 85vh;
   height: 85dvh;
   max-height: 85dvh;
@@ -475,6 +655,197 @@ function formatMessage(text) {
   --vv-bottom-inset: 0px;
 }
 
+.chat-modal-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  overflow: hidden;
+  position: relative;
+}
+
+.session-sidebar {
+  width: 176px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--vp-c-divider);
+  background: var(--vp-c-bg-soft);
+  overflow: hidden;
+}
+
+.sidebar-new-btn {
+  margin: 8px;
+  padding: 6px 10px;
+  border: 1px dashed var(--vp-c-divider);
+  border-radius: 6px;
+  background: var(--vp-c-bg);
+  color: var(--vp-c-text-2);
+  font-size: 12px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.sidebar-new-btn:hover:not(:disabled) {
+  border-color: var(--vp-c-brand-1, #c82829);
+  color: var(--vp-c-brand-1, #c82829);
+}
+.sidebar-new-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.session-list {
+  list-style: none;
+  margin: 0;
+  padding: 0 6px 8px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.session-item {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin-bottom: 2px;
+  border-radius: 6px;
+}
+.session-item.active {
+  background: var(--vp-c-bg);
+}
+
+.session-select-btn {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 6px 6px 8px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  color: var(--vp-c-text-1);
+  border-radius: 6px;
+}
+.session-select-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+.session-item.active .session-select-btn {
+  color: var(--vp-c-brand-1, #c82829);
+}
+
+.session-title {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.session-menu-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.session-menu-btn {
+  width: 26px;
+  height: 26px;
+  margin-right: 2px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--vp-c-text-3);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.session-menu-btn:hover:not(:disabled) {
+  background: var(--vp-c-bg-soft);
+  color: var(--vp-c-text-1);
+}
+.session-menu-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.session-menu-dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 2px);
+  z-index: 20;
+  min-width: 96px;
+  padding: 4px;
+  background: var(--vp-c-bg);
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+}
+
+.session-menu-item {
+  display: block;
+  width: 100%;
+  padding: 7px 10px;
+  border: none;
+  border-radius: 4px;
+  background: none;
+  color: var(--vp-c-text-1);
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+.session-menu-item:hover:not(:disabled) {
+  background: var(--vp-c-bg-soft);
+}
+.session-menu-item.danger {
+  color: #c82829;
+}
+.session-menu-item:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.session-sidebar-backdrop {
+  display: none;
+}
+
+.chat-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.history-toggle-btn,
+.new-chat-btn {
+  display: inline-flex;
+  align-items: center;
+  background: none;
+  border: none;
+  color: var(--vp-c-text-1);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 6px;
+  transition: background 0.2s ease, color 0.2s ease;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+.new-chat-btn:hover:not(:disabled),
+.history-toggle-btn:hover:not(:disabled),
+.history-toggle-btn.active {
+  background: var(--vp-c-brand-soft);
+  color: var(--vp-c-brand-1, #c82829);
+}
+.new-chat-btn:disabled,
+.history-toggle-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .modal-header {
   display: flex;
   justify-content: space-between;
@@ -483,6 +854,9 @@ function formatMessage(text) {
   background: var(--vp-c-bg-soft);
   border-bottom: 1px solid var(--vp-c-divider);
   flex-shrink: 0;
+  position: relative;
+  z-index: 2;
+  -webkit-font-smoothing: antialiased;
 }
 .modal-header-left {
   display: flex;
@@ -733,6 +1107,23 @@ function formatMessage(text) {
   .chat-float-wrapper:not(.is-home) {
     bottom: calc(20px + env(safe-area-inset-bottom, 0px));
     right: 16px;
+  }
+
+  .session-sidebar {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 2;
+    box-shadow: 4px 0 16px rgba(0, 0, 0, 0.12);
+  }
+
+  .session-sidebar-backdrop {
+    display: block;
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: rgba(0, 0, 0, 0.35);
   }
 
   .chat-modal-overlay {
