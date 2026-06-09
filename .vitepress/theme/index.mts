@@ -7,6 +7,7 @@ import Spark2049 from './components/Spark2049.vue'
 import DailyQuote from './components/DailyQuote.vue'
 import AiChat from './components/AiChat.vue'
 import { trackPageview } from './baidu-tongji.mjs'
+import { setupReadingPosition } from './reading-position.mjs'
 
 export default {
   extends: DefaultTheme,
@@ -32,10 +33,8 @@ export default {
     app.component('DailyQuote', DailyQuote)
     app.component('AiChat', AiChat)
 
-    if (router?.onAfterRouteChanged) {
-      router.onAfterRouteChanged((to) => {
-        trackPageview(to || undefined)
-      })
-    }
+    setupReadingPosition(router, {
+      onRouteChanged: (to) => trackPageview(to || undefined),
+    })
   },
 }
