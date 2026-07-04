@@ -7,5 +7,7 @@
   { "name": "重启荒原", "message": "雄关漫道真如铁，而今迈步从头越", "date": "2026.06.02", "amount": 5 },
   { "name": "令统（学生）", "message": "俱往矣，数风流人物，还看今朝", "date": "2026.06.20", "amount": 6 },
   { "name": "G*r", "message": "于无声处听惊雷", "date": "2026.06.23", "amount": 1 },
-  { "name": "*🌻", "message": "星星之火 可以燎原", "date": "2026.07.02", "amount": 1 }
+  { "name": "*🌻", "message": "星星之火 可以燎原", "date": "2026.07.02", "amount": 1 },
+  { "name": "*云", "message": "于无声处听惊雷", "date": "2026.07.03", "amount": 10 },
+  { "name": "阿水", "message": "汲取力量", "date": "2026.07.04", "amount": 1 }
 ]
