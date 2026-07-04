@@ -9,18 +9,48 @@
   },
   "redirects": [
     {
+      "source": "/第一卷/003-中国的红色政权为什么能够存在？ .html",
+      "destination": "https://xuemaoxuan.com/第一卷/003-中国的红色政权为什么能够存在.html",
+      "permanent": true
+    },
+    {
+      "source": "/第一卷/003-中国的红色政权为什么能够存在？%20.html",
+      "destination": "https://xuemaoxuan.com/第一卷/003-中国的红色政权为什么能够存在.html",
+      "permanent": true
+    },
+    {
+      "source": "/第四卷/100-关于目前国际形势的几点估计",
+      "destination": "https://xuemaoxuan.com/第四卷/100-关于目前国际形势的几点估计.html",
+      "permanent": true
+    },
+    {
+      "source": "/第四卷/144-四分五裂的反动派为什么还要空喊“全面和平”？ .html",
+      "destination": "https://xuemaoxuan.com/第四卷/144-四分五裂的反动派为什么还要空喊全面和平.html",
+      "permanent": true
+    },
+    {
+      "source": "/第四卷/144-四分五裂的反动派为什么还要空喊“全面和平”？%20.html",
+      "destination": "https://xuemaoxuan.com/第四卷/144-四分五裂的反动派为什么还要空喊全面和平.html",
+      "permanent": true
+    },
+    {
+      "source": "/第四卷/149-南京政府向何处去？",
+      "destination": "https://xuemaoxuan.com/第四卷/149-南京政府向何处去.html",
+      "permanent": true
+    },
+    {
       "source": "/第四卷/132-关于淮海战役的作战方针",
-      "destination": "/第四卷/132-关于淮海战役的的作战方针",
+      "destination": "https://xuemaoxuan.com/第四卷/132-关于淮海战役的的作战方针.html",
       "permanent": true
     },
     {
       "source": "/第四卷/144-四分五裂的反动派为什么还要空喊“全面和平”",
-      "destination": "/第四卷/144-四分五裂的反动派为什么还要空喊全面和平",
+      "destination": "https://xuemaoxuan.com/第四卷/144-四分五裂的反动派为什么还要空喊全面和平.html",
       "permanent": true
     },
     {
       "source": "/第四卷/154-论人民民主专政",
-      "destination": "/第四卷/154-论人民民主专政--纪念中国共产党二十八周年",
+      "destination": "https://xuemaoxuan.com/第四卷/154-论人民民主专政--纪念中国共产党二十八周年.html",
       "permanent": true
     }
   ]

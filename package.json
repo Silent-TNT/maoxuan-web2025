@@ -3,6 +3,7 @@
     "docs:dev": "vitepress dev",
     "docs:build": "vitepress build",
     "docs:preview": "vitepress preview",
+    "seo:check-links": "node scripts/check-vitepress-links.mjs",
     "rag:build": "node scripts/rag/build-index.mjs",
     "rag:check": "node scripts/rag/check-embedding.mjs",
     "rag:build:lite": "node scripts/rag/build-index-lite.mjs",

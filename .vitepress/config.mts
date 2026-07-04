@@ -1,5 +1,6 @@
 import { defineConfig } from 'vitepress'
 import { devChatApiPlugin } from './plugins/dev-chat-api.mjs'
+import { transformHead, transformPageData, transformSitemapItems } from './seo.mjs'
 
 const baiduTongjiId = (process.env.VITE_BAIDU_TONGJI_ID || '').trim()
 const baiduHead =
@@ -16,6 +17,8 @@ const baiduHead =
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
   title: "毛泽东选集在线阅读",
+  transformPageData,
+  transformHead,
   vite: {
     plugins: [devChatApiPlugin()],
   },
@@ -34,7 +37,8 @@ export default defineConfig({
     ...baiduHead,
   ],
   sitemap: {
-    hostname: 'https://xuemaoxuan.com'
+    hostname: 'https://xuemaoxuan.com',
+    transformItems: transformSitemapItems,
   },
   
 
@@ -226,7 +230,7 @@ export default defineConfig({
           { text: '关于辽沈战役的作战方针', link: '/第四卷/129-关于辽沈战役的作战方针' },
           { text: '关于健全党委制', link: '/第四卷/130-关于健全党委制' },
           { text: '中共中央关于九月会议的通知', link: '/第四卷/131-中共中央关于九月会议的通知' },
-          { text: '关于淮海战役的作战方针', link: '/第四卷/132-关于淮海战役的作战方针' },
+          { text: '关于淮海战役的作战方针', link: '/第四卷/132-关于淮海战役的的作战方针' },
           { text: '全世界革命力量团结起来，反对帝国主义的侵略', link: '/第四卷/133-全世界革命力量团结起来，反对帝国主义的侵略' },
           { text: '中国军事形势的重大变化', link: '/第四卷/134-中国军事形势的重大变化' },
           { text: '关于平津战役的作战方针', link: '/第四卷/135-关于平津战役的作战方针' },
@@ -248,7 +252,7 @@ export default defineConfig({
           { text: '中国人民解放军布告', link: '/第四卷/151-中国人民解放军布告' },
           { text: '中国人民解放军总部发言人为英国军舰暴行发表的声明', link: '/第四卷/152-中国人民解放军总部发言人为英国军舰暴行发表的声明' },
           { text: '在新政治协商会议筹备会上的讲话', link: '/第四卷/153-在新政治协商会议筹备会上的讲话' },
-          { text: '论人民民主专政', link: '/第四卷/154-论人民民主专政' },
+          { text: '论人民民主专政', link: '/第四卷/154-论人民民主专政--纪念中国共产党二十八周年' },
           { text: '丢掉幻想，准备斗争', link: '/第四卷/155-丢掉幻想，准备斗争' },
           { text: '别了，司徒雷登', link: '/第四卷/156-别了，司徒雷登' },
           { text: '“友谊”，还是侵略？', link: '/第四卷/157-“友谊”，还是侵略' },
