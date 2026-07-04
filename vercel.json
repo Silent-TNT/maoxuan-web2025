@@ -9,17 +9,6 @@
   },
   "redirects": [
     {
-      "source": "/:path*",
-      "has": [
-        {
-          "type": "host",
-          "value": "www.xuemaoxuan.com"
-        }
-      ],
-      "destination": "https://xuemaoxuan.com/:path*",
-      "permanent": true
-    },
-    {
       "source": "/第一卷/003-中国的红色政权为什么能够存在？ .html",
       "destination": "https://xuemaoxuan.com/第一卷/003-中国的红色政权为什么能够存在.html",
       "permanent": true
