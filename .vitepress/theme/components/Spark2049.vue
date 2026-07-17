@@ -14,6 +14,7 @@ function syncDarkClass() {
 }
 
 const darkMode = computed(() => isDark?.value ?? htmlHasDark.value)
+const COST_PER_YEAR = 200
 
 let darkObserver = null
 onMounted(() => {
@@ -36,9 +37,11 @@ const donors = rawDonors.map(d => {
   // 1元 ≈ 0.9倍大小， 10元 ≈ 1.2倍， 84元 ≈ 1.56倍
   // 这样既能体现金额差距，又能防止大额打赏让火种占满全屏
   const scale = 0.8 + Math.log10(amount + 1) * 0.4
+  const supportDays = Math.round((amount / COST_PER_YEAR) * 365 * 100) / 100
   
   return {
     ...d,
+    supportDays,
     scale: scale.toFixed(2), // 绑定给火苗的大小比例
     delay: Math.random() * 2 + 's' // 随机呼吸动画延迟
   }
@@ -63,6 +66,7 @@ const danmakuList = computed(() => {
         name: d.name,
         message: d.message || '星星之火，可以燎原',
         amount: d.amount,
+        supportDays: d.supportDays,
         lane,
         duration,
         delay,
@@ -73,7 +77,6 @@ const danmakuList = computed(() => {
 })
 
 // --- 配置参数 ---
-const COST_PER_YEAR = 100
 const startDate = new Date('2025-12-19') 
 const targetDate = new Date('2049-10-01') 
 const baseFundedDate = new Date('2025-12-19') 
@@ -171,12 +174,14 @@ function closeDonateModal() {
         </div>
         
         <div class="spark-card" @click.stop>
-          <div class="donor-meta">
-            <span>{{ donor.date }}</span>
-            <span class="amount">￥{{ donor.amount }}</span>
-          </div>
           <div class="donor-name">@{{ donor.name }}</div>
           <div class="donor-msg">“{{ donor.message }}”</div>
+          <div class="donor-meta">
+            <span>{{ donor.date }}</span>
+            <span class="donor-impact">
+              ¥{{ donor.amount }}（+{{ donor.supportDays }}天）
+            </span>
+          </div>
         </div>
       </div>
     </div>
@@ -186,8 +191,7 @@ function closeDonateModal() {
         <button type="button" class="pay-panel-close" aria-label="关闭" @click="closeDonateModal">×</button>
         <h3 class="pay-panel-title">注入星火</h3>
         <p class="pay-panel-desc">
-          <span>用于域名、服务器与 AI 接口。</span>
-          <span>目前站点不含算力成本为{{ COST_PER_YEAR }}元/年</span>
+          <span>域名、服务器、AI 算力成本约为{{ COST_PER_YEAR }}元/年</span>
         </p>
         <div class="qr-duo">
           <div class="qr-slot">
@@ -216,7 +220,7 @@ function closeDonateModal() {
       >
         <span class="danmaku-name">@{{ item.name }}</span>
         <span class="danmaku-msg">「{{ item.message }}」</span>
-        <span class="danmaku-amount">￥{{ item.amount }}</span>
+        <span class="danmaku-amount">¥{{ item.amount }}（+{{ item.supportDays }}天）</span>
       </div>
     </div>
   </div>
@@ -294,15 +298,18 @@ function closeDonateModal() {
 .donor-meta {
   display: flex;
   justify-content: space-between;
+  gap: 10px;
   font-size: 9px;
   color: var(--spark-muted);
-  margin-bottom: 4px;
+  margin-top: 5px;
   letter-spacing: 0;
   font-family: sans-serif;
 }
-.donor-meta .amount {
-  color: #c82829;
-  font-weight: bold;
+
+.donor-impact {
+  display: inline-flex;
+  gap: 6px;
+  white-space: nowrap;
 }
 
 .donor-name {
@@ -313,12 +320,14 @@ function closeDonateModal() {
 }
 
 .donor-msg {
-  font-size: 12px;
-  color: var(--spark-card-text);
+  font-size: 13px;
+  color: #c82829;
   font-family: "Songti SC", serif;
-  line-height: 1.4;
+  font-weight: 700;
+  line-height: 1.5;
   border-top: 1px solid var(--spark-border);
-  padding-top: 4px;
+  border-bottom: 1px solid var(--spark-border);
+  padding: 6px 0;
 }
 
 /* 文案区域 */
