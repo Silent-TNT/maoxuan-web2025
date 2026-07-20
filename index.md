@@ -49,6 +49,6 @@ features:
     line-height: 1.7;
   ">
     公众号二维码 沉默的TNT<br>
-    深度思考者的自留地
+    学毛选，用毛选
   </p>
 </div>
