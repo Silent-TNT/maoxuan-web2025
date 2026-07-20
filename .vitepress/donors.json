@@ -9,5 +9,7 @@
   { "name": "*🌻", "message": "星星之火 可以燎原", "date": "2026.07.02", "amount": 1 },
   { "name": "*云", "message": "于无声处听惊雷", "date": "2026.07.03", "amount": 10 },
   { "name": "阿水", "message": "汲取力量", "date": "2026.07.04", "amount": 1 },
-  { "name": "元亨利贞", "message": "聊表心意", "date": "2026.07.07", "amount": 10 }
+  { "name": "元亨利贞", "message": "聊表心意", "date": "2026.07.07", "amount": 10 },
+  { "name": "呀哈哈", "message": "人民万岁", "date": "2026.07.20", "amount": 200 },
+  { "name": "二十三画生", "message": "星星之火可以燎原", "date": "2026.07.20", "amount": 5 }
 ]
