@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import { computed, ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useData } from 'vitepress'
 import { BaiduTrack } from '../baidu-tongji.mjs'
 import {
@@ -8,6 +8,7 @@ import {
 } from '../share-poster.mjs'
 
 const { page } = useData()
+const isArticlePage = computed(() => /^第[一二三四]卷\/\d{3}-.+\.md$/u.test(page.value?.relativePath || ''))
 
 let html2canvas = null
 const visible = ref(false)
@@ -21,8 +22,30 @@ const cardImage = ref(null)
 
 const handleSelection = () => {
   if (showModal.value) return
+  if (!isArticlePage.value) {
+    visible.value = false
+    quote.value = ''
+    return
+  }
 
   const selection = window.getSelection()
+  if (!selection?.rangeCount) {
+    visible.value = false
+    return
+  }
+  const range = selection.getRangeAt(0)
+  const startElement = range.startContainer?.nodeType === Node.ELEMENT_NODE
+    ? range.startContainer
+    : range.startContainer?.parentElement
+  const endElement = range.endContainer?.nodeType === Node.ELEMENT_NODE
+    ? range.endContainer
+    : range.endContainer?.parentElement
+  const article = startElement?.closest('.vp-doc')
+  if (!article || article !== endElement?.closest('.vp-doc')) {
+    visible.value = false
+    quote.value = ''
+    return
+  }
   let text = selection.toString().trim()
   text = cleanQuoteText(text)
 
@@ -30,12 +53,16 @@ const handleSelection = () => {
     quote.value = text
     posterBlocks.value = []
     posterSource.value = page.value.title || ''
-    const range = selection.getRangeAt(0)
     const rect = range.getBoundingClientRect()
+    const explainButtonWidth = 126
+    const gap = 8
+    const cardButtonWidth = 126
+    const groupWidth = explainButtonWidth + gap + cardButtonWidth
+    const groupLeft = Math.max(12, Math.min(window.innerWidth - groupWidth - 12, rect.left + rect.width / 2 - groupWidth / 2))
 
     buttonStyle.value = {
-      top: `${window.scrollY + rect.top - 45}px`,
-      left: `${rect.left + rect.width / 2 - 50}px`,
+      top: `${Math.max(12, rect.top - 44)}px`,
+      left: `${groupLeft + explainButtonWidth + gap}px`,
     }
     visible.value = true
   } else {
@@ -104,17 +131,24 @@ watch(sharePosterRequest, (req) => {
   generateCard()
 })
 
+watch(() => page.value?.relativePath, () => {
+  visible.value = false
+  quote.value = ''
+})
+
+const handleTouchEnd = (event) => {
+  if (event.target.closest('.float-btn')) return
+  setTimeout(handleSelection, 100)
+}
+
 onMounted(() => {
   document.addEventListener('mouseup', handleSelection)
-  document.addEventListener('touchend', (e) => {
-    if (e.target.closest('.float-btn')) return
-    setTimeout(handleSelection, 100)
-  })
+  document.addEventListener('touchend', handleTouchEnd)
 })
 
 onUnmounted(() => {
   document.removeEventListener('mouseup', handleSelection)
-  document.removeEventListener('touchend', handleSelection)
+  document.removeEventListener('touchend', handleTouchEnd)
 })
 </script>
 
@@ -127,7 +161,11 @@ onUnmounted(() => {
       @mousedown.prevent="generateCard"
       @touchstart.prevent="generateCard"
     >
-      <span class="icon">✨</span> 生成金句卡片
+      <svg class="action-icon" viewBox="0 0 20 20" aria-hidden="true">
+        <rect x="3.5" y="3.5" width="13" height="13" rx="2" />
+        <path d="m6.5 13 2.4-2.5 1.8 1.7 1.7-2 2.1 2.8M12.8 7.2h.01" />
+      </svg>
+      <span>生成卡片</span>
     </div>
 
     <div v-if="showModal" class="modal-mask" @click.self="closeModal">
@@ -176,17 +214,48 @@ onUnmounted(() => {
 <style scoped>
 /* 悬浮按钮 */
 .float-btn {
-  position: absolute; z-index: 1000;
-  background: #d22b2b; color: #fff; padding: 8px 16px;
-  border-radius: 50px; font-size: 13px; font-weight: bold;
-  cursor: pointer; box-shadow: 0 4px 15px rgba(210, 43, 43, 0.4);
-  transform: translateY(0); transition: all 0.2s; pointer-events: auto; user-select: none;
+  position: fixed;
+  z-index: 9998;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: 126px;
+  height: 38px;
+  padding: 0 12px;
+  border: 1px solid #d22b2b;
+  border-radius: 999px;
+  background: #fff;
+  color: #b4232b;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(91, 31, 34, 0.16);
+  transform: translateY(0);
+  transition: transform 0.18s ease, background-color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+  pointer-events: auto;
+  user-select: none;
 }
-.float-btn:hover { transform: translateY(-3px); background: #ff4d4d; }
+.float-btn:hover {
+  transform: translateY(-2px);
+  background: #fff5f5;
+  border-color: #b4232b;
+  box-shadow: 0 8px 22px rgba(91, 31, 34, 0.22);
+}
+.action-icon {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
 .float-btn::after {
-  content: ''; position: absolute; top: 100%; left: 50%; margin-left: -6px;
-  border-width: 6px; border-style: solid;
-  border-color: #d22b2b transparent transparent transparent;
+  display: none;
 }
 
 .modal-mask {

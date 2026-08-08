@@ -1,0 +1,22 @@
+[
+  { "question": "谁是我们的敌人，谁是我们的朋友，为什么是革命的首要问题？", "expectedTitle": "中国社会各阶级的分析" },
+  { "question": "为什么说农民问题是国民革命的中心问题？", "expectedTitle": "湖南农民运动考察报告" },
+  { "question": "中国的红色政权为什么能够长期存在？", "expectedTitle": "中国的红色政权为什么能够存在？" },
+  { "question": "星星之火为什么可以燎原？", "expectedTitle": "星星之火，可以燎原" },
+  { "question": "没有调查就没有发言权出自哪里？", "expectedTitle": "反对本本主义" },
+  { "question": "感觉到了的东西为什么不能立刻理解？", "expectedTitle": "实践论" },
+  { "question": "主要矛盾和矛盾的主要方面有什么区别？", "expectedTitle": "矛盾论" },
+  { "question": "为什么抗日战争既不能速胜也不会亡国？", "expectedTitle": "论持久战" },
+  { "question": "自由主义有哪些具体表现？", "expectedTitle": "反对自由主义" },
+  { "question": "白求恩毫不利己专门利人的精神说明了什么？", "expectedTitle": "纪念白求恩" },
+  { "question": "什么是新民主主义的政治经济和文化？", "expectedTitle": "新民主主义论" },
+  { "question": "为什么要反对主观主义和改造学习方法？", "expectedTitle": "改造我们的学习" },
+  { "question": "主观主义、宗派主义和党八股是什么关系？", "expectedTitle": "整顿党的作风" },
+  { "question": "党八股的八条罪状是什么？", "expectedTitle": "反对党八股" },
+  { "question": "为什么说为人民利益而死比泰山还重？", "expectedTitle": "为人民服务" },
+  { "question": "愚公移山这个寓言说明了怎样的政治道理？", "expectedTitle": "愚公移山" },
+  { "question": "怎样建立民主的联合政府？", "expectedTitle": "论联合政府" },
+  { "question": "党委书记为什么要善于当班长？", "expectedTitle": "党委会的工作方法" },
+  { "question": "人民民主专政的基础和任务是什么？", "expectedTitle": "论人民民主专政" },
+  { "question": "为什么要丢掉幻想准备斗争？", "expectedTitle": "丢掉幻想，准备斗争" }
+]

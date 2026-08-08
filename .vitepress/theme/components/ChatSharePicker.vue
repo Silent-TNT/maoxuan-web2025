@@ -18,7 +18,7 @@ async function onConfirm() {
     return
   }
   if (!confirmSharePicker()) {
-    await showChatAlert('所选内容过短，无法生成金句卡片。', '暂无法分享')
+    await showChatAlert('所选内容过短，无法生成卡片。', '暂无法分享')
   }
 }
 </script>
@@ -33,7 +33,7 @@ async function onConfirm() {
       >
         <div class="share-picker-card" role="dialog" aria-modal="true">
           <h3 class="share-picker-title">选择分享内容</h3>
-          <p class="share-picker-hint">可多选或取消，问答均可纳入金句卡片。</p>
+          <p class="share-picker-hint">可多选或取消，问答均可纳入卡片。</p>
 
           <div class="share-picker-toolbar">
             <button type="button" class="toolbar-btn" @click="setAllShareItems(true)">
@@ -73,7 +73,7 @@ async function onConfirm() {
               取消
             </button>
             <button type="button" class="picker-btn primary" @click="onConfirm">
-              生成金句卡片
+              生成卡片
             </button>
           </div>
         </div>

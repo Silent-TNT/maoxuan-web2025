@@ -4,13 +4,16 @@ import { fileURLToPath, pathToFileURL } from 'url'
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const chatHandlerUrl = pathToFileURL(path.join(root, 'api/chat-handler.mjs')).href
 
-let cachedHandleChat = null
-async function getHandleChatRequest() {
-  if (!cachedHandleChat) {
+let cachedChatHandlers = null
+async function getChatHandlers() {
+  if (!cachedChatHandlers) {
     const mod = await import(chatHandlerUrl)
-    cachedHandleChat = mod.handleChatRequest
+    cachedChatHandlers = {
+      handleChatRequest: mod.handleChatRequest,
+      handleChatStreamRequest: mod.handleChatStreamRequest,
+    }
   }
-  return cachedHandleChat
+  return cachedChatHandlers
 }
 
 /** 本地 docs:dev 时把 /api/chat 转到 chat-handler（需已构建 rag-index 并配置 .env） */
@@ -29,8 +32,24 @@ export function devChatApiPlugin() {
 
         try {
           await loadEnv()
-          const handleChatRequest = await getHandleChatRequest()
+          const { handleChatRequest, handleChatStreamRequest } = await getChatHandlers()
           const body = await readJsonBody(req)
+          if (body.stream) {
+            res.statusCode = 200
+            res.setHeader('Content-Type', 'application/x-ndjson; charset=utf-8')
+            res.setHeader('Cache-Control', 'no-cache, no-transform')
+            res.flushHeaders?.()
+            try {
+              const result = await handleChatStreamRequest(
+                body,
+                (delta) => res.write(`${JSON.stringify({ type: 'delta', delta })}\n`),
+              )
+              res.end(`${JSON.stringify({ type: 'done', ...result })}\n`)
+            } catch (err) {
+              res.end(`${JSON.stringify({ type: 'error', error: err.message || 'Server error' })}\n`)
+            }
+            return
+          }
           const result = await handleChatRequest(body)
           res.setHeader('Content-Type', 'application/json; charset=utf-8')
           res.end(JSON.stringify(result))

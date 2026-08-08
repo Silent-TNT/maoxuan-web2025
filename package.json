@@ -6,6 +6,7 @@
     "seo:check-links": "node scripts/check-vitepress-links.mjs",
     "rag:build": "node scripts/rag/build-index.mjs",
     "rag:check": "node scripts/rag/check-embedding.mjs",
+    "rag:eval": "node scripts/rag/eval-retrieval.mjs",
     "rag:build:lite": "node scripts/rag/build-index-lite.mjs",
     "rag:chunks": "node scripts/rag/count-chunks.mjs"
   },

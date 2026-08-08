@@ -38,6 +38,12 @@ export const BaiduTrack = {
   chatSend(extra = '') {
     trackEvent('chat', 'send', extra)
   },
+  chatFeedback(value, retrievalStatus = '') {
+    trackEvent('chat', 'feedback', `${value}:${retrievalStatus}`)
+  },
+  chatFeedbackReason(reason, retrievalStatus = '') {
+    trackEvent('chat', 'feedback_reason', `${reason}:${retrievalStatus}`)
+  },
   donateClick(channel = '') {
     trackEvent('donate', 'open_modal', channel)
   },

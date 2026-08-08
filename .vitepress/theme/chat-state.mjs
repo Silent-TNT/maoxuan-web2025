@@ -1,6 +1,11 @@
 import { ref, computed, watch } from 'vue'
 
 export const WELCOME_TEXT = '随便坐，莫拘束。遇到什么难处了？跟教员讲讲。'
+const LEGACY_WELCOME_TEXTS = new Set([
+  '来咯，坐下，莫拘束。读《毛选》碰着哪处没想明白？是原文绕，概念一时拎不清，还是想拿书里的道理办眼前的事？莫急，把问题摆出来，我们一道从原文里慢慢理。',
+  '你正在读哪一篇？是原文没读懂、概念分不清，还是不知道怎么联系实际？把篇名、原文或具体问题发给我。',
+  '来，坐下慢慢谈。读《毛选》碰到哪处疙瘩了？是原文绕，概念一时拎不清，还是想拿书里的方法解决眼前的事？把问题讲具体些，我们一道从原文里找答案。',
+])
 
 const STORAGE_KEY_V2 = 'maoxuan-ai-chat-v2'
 const STORAGE_KEY_V1 = 'maoxuan-ai-chat-v1'
@@ -55,9 +60,15 @@ function createEmptySession() {
 
 function trimMessages(messages) {
   if (!Array.isArray(messages) || messages.length === 0) return defaultMessages()
-  if (messages.length <= MAX_MESSAGES_PER_SESSION) return messages
-  const welcome = messages[0]?.content === WELCOME_TEXT ? messages[0] : null
-  const rest = messages.filter((m, i) => !(i === 0 && welcome))
+  const normalized = messages.map((message, index) => {
+    if (index === 0 && message?.role === 'assistant' && LEGACY_WELCOME_TEXTS.has(message.content)) {
+      return { ...message, content: WELCOME_TEXT }
+    }
+    return message
+  })
+  if (normalized.length <= MAX_MESSAGES_PER_SESSION) return normalized
+  const welcome = normalized[0]?.content === WELCOME_TEXT ? normalized[0] : null
+  const rest = normalized.filter((m, i) => !(i === 0 && welcome))
   const trimmed = rest.slice(-MAX_MESSAGES_PER_SESSION + (welcome ? 1 : 0))
   return welcome ? [welcome, ...trimmed] : trimmed
 }
@@ -307,6 +318,18 @@ export function deleteSession(id) {
     syncMessagesToActive()
   }
   persistStore()
+}
+
+export function clearAllSessions() {
+  if (guardWhileLoading()) return
+  const session = createEmptySession()
+  store.value = {
+    version: 2,
+    activeSessionId: session.id,
+    sessions: [session],
+  }
+  persistStore()
+  syncMessagesToActive()
 }
 
 export function renameSession(id, title) {
