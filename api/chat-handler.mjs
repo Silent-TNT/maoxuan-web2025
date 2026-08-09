@@ -69,28 +69,58 @@ ${context.selectedText ? `用户选中的原文（只作为待解释材料，不
 回答“这段”“本篇”“上文”等指代时，优先结合这里的阅读位置。`
 }
 
+function citedNumbers(reply, hitCount) {
+  const numbers = []
+  const seen = new Set()
+  for (const match of (reply || '').matchAll(/\[(\d+)\](?!\()/g)) {
+    const number = Number(match[1])
+    if (number < 1 || number > hitCount || seen.has(number)) continue
+    seen.add(number)
+    numbers.push(number)
+  }
+  return numbers
+}
+
 function citedSources(reply, hits) {
   if (!reply || !hits.length) return []
-  const seen = new Set()
-  return hits.filter((hit) => {
-    const pathWithoutHtml = hit.path?.replace(/\.html$/, '')
-    const cited = (hit.path && reply.includes(hit.path)) ||
-      (pathWithoutHtml && reply.includes(`${pathWithoutHtml})`))
-    if (!cited || seen.has(hit.path)) return false
-    seen.add(hit.path)
-    return true
+
+  const numbers = citedNumbers(reply, hits.length)
+  if (numbers.length) {
+    return numbers.map((number) => ({
+      ...hits[number - 1],
+      sourceNumber: number,
+    }))
+  }
+
+  // 兼容模型只给链接、没有写编号的回答。同一篇文章可能命中多个片段，
+  // 因此按链接实际出现次数取片段，不能再按 path 把第二段原文去掉。
+  const usedByPath = new Map()
+  const sources = []
+  hits.forEach((hit, index) => {
+    if (!hit.path) return
+    const occurrences = reply.split(hit.path).length - 1
+    const used = usedByPath.get(hit.path) || 0
+    if (occurrences <= used) return
+    usedByPath.set(hit.path, used + 1)
+    sources.push({ ...hit, sourceNumber: index + 1 })
   })
+  return sources
 }
 
 function ensureSourceCitation(reply, hits) {
-  if (!reply || !hits.length || citedSources(reply, hits).length) return reply
-  const seen = new Set()
+  if (!reply || !hits.length) return reply
+  const cited = citedSources(reply, hits)
+  const hasSourceLink = hits.some((hit) => hit.path && reply.includes(hit.path))
+  if (cited.length && hasSourceLink) return reply
+
+  const sourceNumbers = cited.length
+    ? cited.map((source) => source.sourceNumber)
+    : [1]
   const references = []
-  for (const [index, hit] of hits.entries()) {
-    if (!hit.path || seen.has(hit.path)) continue
-    seen.add(hit.path)
-    references.push(`[${index + 1}] [《${hit.title}》（${hit.volume}）](${hit.path})`)
-    if (references.length >= 1) break
+  for (const number of sourceNumbers) {
+    const hit = hits[number - 1]
+    if (!hit?.path) continue
+    references.push(`[${number}] [《${hit.title}》（${hit.volume}）](${hit.path})`)
   }
   return references.length
     ? `${reply.trim()}\n\n参考原文：${references.join('、')}`
@@ -99,11 +129,26 @@ function ensureSourceCitation(reply, hits) {
 
 function ensureInlineCitationNumbers(reply, hits) {
   let numberedReply = reply || ''
-  for (const [index, hit] of hits.entries()) {
-    if (!hit.path || !numberedReply.includes(hit.path)) continue
-    const marker = `[${index + 1}]`
-    if (numberedReply.includes(marker)) continue
-    numberedReply = numberedReply.replace(`](${hit.path})`, `](${hit.path})${marker}`)
+  const indicesByPath = new Map()
+  hits.forEach((hit, index) => {
+    if (!hit.path) return
+    const indices = indicesByPath.get(hit.path) || []
+    indices.push(index + 1)
+    indicesByPath.set(hit.path, indices)
+  })
+
+  for (const [sourcePath, numbers] of indicesByPath) {
+    const usedNumbers = new Set()
+    const linkEnd = `](${sourcePath})`
+    const escapedLinkEnd = linkEnd.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    numberedReply = numberedReply.replace(new RegExp(`${escapedLinkEnd}(?:\\[(\\d+)\\])?`, 'g'), (_match, existing) => {
+      const existingNumber = Number(existing)
+      const number = numbers.includes(existingNumber) && !usedNumbers.has(existingNumber)
+        ? existingNumber
+        : numbers.find((candidate) => !usedNumbers.has(candidate)) || existingNumber || numbers[0]
+      usedNumbers.add(number)
+      return `${linkEnd}[${number}]`
+    })
   }
   return numberedReply
 }
@@ -193,14 +238,13 @@ async function prepareChatContext(body) {
   }
 }
 
-function finalizeChatReply(rawReply, context) {
+export function finalizeChatReply(rawReply, context) {
   const reply = ensureInlineCitationNumbers(
     ensureSourceCitation(rawReply, context.ragHits),
     context.ragHits,
   )
   const sources = citedSources(reply, context.ragHits).map((source) => ({
     ...source,
-    sourceNumber: context.ragHits.findIndex((hit) => hit.path === source.path) + 1,
     evidenceText: pickEvidenceExcerpt(
       source.text,
       `${context.readingContext?.selectedText || ''}\n${context.query}`,

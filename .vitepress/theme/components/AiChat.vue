@@ -215,7 +215,7 @@
                       <div class="chat-evidence-list">
                         <article
                           v-for="(s, sourceIndex) in uniqueSources(msg.sources)"
-                          :key="s.path || s.id"
+                          :key="`${s.sourceNumber || sourceIndex + 1}:${s.id || s.path || s.title}`"
                           class="evidence-card"
                         >
                           <span class="evidence-number">[{{ s.sourceNumber || sourceIndex + 1 }}]</span>
@@ -442,7 +442,31 @@ let activeAbortController = null
 let requestTimeoutId = null
 let stopRequested = false
 let timeoutTriggered = false
-let previousBodyOverflow = ''
+let quoteHighlightTimer = null
+
+const CHAT_SCROLL_LOCK_ATTR = 'data-maoxuan-chat-scroll-lock'
+const CHAT_PREVIOUS_OVERFLOW_ATTR = 'data-maoxuan-chat-previous-overflow'
+
+function lockPageScroll() {
+  const body = document.body
+  if (body.hasAttribute(CHAT_SCROLL_LOCK_ATTR)) return
+  body.setAttribute(CHAT_SCROLL_LOCK_ATTR, '')
+  body.setAttribute(CHAT_PREVIOUS_OVERFLOW_ATTR, body.style.overflow || '')
+  body.style.overflow = 'hidden'
+}
+
+function unlockPageScroll() {
+  const body = document.body
+  if (!body.hasAttribute(CHAT_SCROLL_LOCK_ATTR)) return
+  body.style.overflow = body.getAttribute(CHAT_PREVIOUS_OVERFLOW_ATTR) || ''
+  body.removeAttribute(CHAT_SCROLL_LOCK_ATTR)
+  body.removeAttribute(CHAT_PREVIOUS_OVERFLOW_ATTR)
+}
+
+function cancelQuotedSourceHighlight() {
+  if (quoteHighlightTimer !== null) window.clearTimeout(quoteHighlightTimer)
+  quoteHighlightTimer = null
+}
 
 const toggleSessionSidebar = () => {
   showSessionSidebar.value = !showSessionSidebar.value
@@ -575,20 +599,21 @@ function bindVisualViewport() {
 
 watch(isModalOpen, (open) => {
   if (open) {
-    previousBodyOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
+    lockPageScroll()
     nextTick(() => {
       bindVisualViewport()
       chatInputRef.value?.focus({ preventScroll: true })
     })
   } else {
-    document.body.style.overflow = previousBodyOverflow
+    unlockPageScroll()
     viewportCleanup?.()
     viewportCleanup = null
   }
 })
 
 watch(() => page.value?.relativePath, async () => {
+  if (!isModalOpen.value) unlockPageScroll()
+  cancelQuotedSourceHighlight()
   lastArticleSelection.value = ''
   selectionToolbarVisible.value = false
   await nextTick()
@@ -650,7 +675,8 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
-  document.body.style.overflow = previousBodyOverflow
+  unlockPageScroll()
+  cancelQuotedSourceHighlight()
   viewportCleanup?.()
   document.removeEventListener('pointerdown', onDocumentPointerDown)
   document.removeEventListener('keydown', onDocumentKeydown)
@@ -805,6 +831,8 @@ const closeModal = () => {
   showSessionSidebar.value = false
   closeSessionMenu()
   closeChat()
+  // 跳转文章时不能只等异步 watch 清理，否则新页面可能短暂继承滚动锁。
+  unlockPageScroll()
 }
 
 function onSparkDonateClick() {
@@ -997,7 +1025,10 @@ function uniqueSources(sources) {
   if (!sources?.length) return []
   const seen = new Set()
   return sources.filter((s) => {
-    const key = s.path || s.title
+    // 同一篇文章可以有多个独立检索片段，编号不同就应分别展示。
+    const key = s.sourceNumber
+      ? `number:${s.sourceNumber}`
+      : `source:${s.id || ''}:${s.path || s.title}:${s.evidenceText || s.text || ''}`
     if (seen.has(key)) return false
     seen.add(key)
     return true
@@ -1042,21 +1073,32 @@ function normalizeArticlePath(href) {
 
 function highlightQuotedSource() {
   const quote = new URLSearchParams(window.location.search).get('quote')?.replace(/\s+/g, ' ').trim()
-  if (!quote) return
+  if (!quote) return true
   const candidates = [...document.querySelectorAll('.vp-doc p, .vp-doc blockquote')]
   const target = candidates.find((element) => element.textContent?.replace(/\s+/g, ' ').includes(quote))
-  if (!target) return
+  if (!target) return false
   document.querySelectorAll('.maoxuan-source-highlight').forEach((element) => {
     element.classList.remove('maoxuan-source-highlight')
   })
   target.classList.add('maoxuan-source-highlight')
   target.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  return true
 }
 
 function scheduleQuotedSourceHighlight() {
-  ;[0, 180, 600, 1200].forEach((delay) => {
-    window.setTimeout(highlightQuotedSource, delay)
-  })
+  cancelQuotedSourceHighlight()
+  const retryDelays = [0, 180, 600, 1200]
+  const tryHighlight = (attempt = 0) => {
+    if (highlightQuotedSource() || attempt >= retryDelays.length - 1) {
+      quoteHighlightTimer = null
+      return
+    }
+    quoteHighlightTimer = window.setTimeout(
+      () => tryHighlight(attempt + 1),
+      retryDelays[attempt + 1],
+    )
+  }
+  quoteHighlightTimer = window.setTimeout(() => tryHighlight(0), retryDelays[0])
 }
 
 async function handleArticleLinkClick(event) {
@@ -1066,6 +1108,7 @@ async function handleArticleLinkClick(event) {
   if (!path) return
   event.preventDefault()
   closeModal()
+  await nextTick()
   await router.push(path)
   scheduleQuotedSourceHighlight()
 }
