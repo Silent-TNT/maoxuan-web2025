@@ -2,3 +2,4 @@ node_modules
 .vitepress/dist
 .env
 api/rag-index.json
+.vitepress/data/note-selectors.review.json

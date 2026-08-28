@@ -32,7 +32,7 @@
       <span>解释这段</span>
     </button>
     <button v-if="!isHome" class="chat-toggle-btn" @click="openModal">
-      ★ 阅读咨询
+      ★ 阅读咨询室
     </button>
 
     <ClientOnly>

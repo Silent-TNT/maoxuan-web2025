@@ -1,4 +1,6 @@
 import { defineConfig } from 'vitepress'
+import { existsSync, readFileSync, readdirSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { devChatApiPlugin } from './plugins/dev-chat-api.mjs'
 import { transformHead, transformPageData, transformSitemapItems } from './seo.mjs'
 
@@ -14,8 +16,45 @@ const baiduHead =
       ]
     : []
 
+const slugifyHeading = (text: string) =>
+  text
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[\u0000-\u001f]/g, '')
+    .replace(/[\s~`!@#$%^&*()\-_+=[\]{}|\\;:"'“”‘’<>,.?/]+/g, '-')
+    .replace(/-{2,}/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .replace(/^(\d)/, '_$1')
+    .toLowerCase()
+
+const resolveArticleFile = (link: string) => {
+  const relativePath = decodeURI(link.split('#')[0]).replace(/^\//, '')
+  const exactPath = resolve(process.cwd(), `${relativePath}.md`)
+  if (existsSync(exactPath)) return exactPath
+
+  const [volume, filename = ''] = relativePath.split('/')
+  const number = filename.match(/^(\d{3})-/)?.[1]
+  const volumePath = resolve(process.cwd(), volume)
+  if (!number || !existsSync(volumePath)) return null
+  const fallback = readdirSync(volumePath).find((name) => name.startsWith(`${number}-`) && name.endsWith('.md'))
+  return fallback ? resolve(volumePath, fallback) : null
+}
+
+const articleSections = (link: string) => {
+  const file = resolveArticleFile(link)
+  if (!file) return []
+  const baseLink = link.split('#')[0]
+  return Array.from(readFileSync(file, 'utf8').matchAll(/^##\s+(.+?)\s*$/gm)).map((match) => {
+    const sourceHeading = match[1].replace(/\s+#+\s*$/, '').trim()
+    const text = sourceHeading
+      .replace(/\s*(?:[⑴-⒇]|〔\d{1,3}〕|[（(]\d{1,3}[）)])\s*$/, '')
+      .trim()
+    return { text, link: `${baseLink}#${slugifyHeading(sourceHeading)}` }
+  })
+}
+
 // https://vitepress.dev/reference/site-config
-export default defineConfig({
+const config = defineConfig({
   title: "毛泽东选集在线阅读",
   transformPageData,
   transformHead,
@@ -271,3 +310,20 @@ export default defineConfig({
     // 👆👆👆
   }
 })
+
+// 为每篇文章自动读取二级标题。当前文章会由 VitePress 自动展开，离开后恢复折叠。
+const sidebarGroups = config.themeConfig?.sidebar
+if (Array.isArray(sidebarGroups)) {
+  sidebarGroups.forEach((group: any) => {
+    group.items?.forEach((item: any) => {
+      if (!item.link) return
+      const sections = articleSections(item.link)
+      if (sections.length > 0) {
+        item.items = sections
+        item.collapsed = true
+      }
+    })
+  })
+}
+
+export default config

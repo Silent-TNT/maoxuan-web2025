@@ -6,32 +6,39 @@ import ShareCard from './components/ShareCard.vue'
 import Spark2049 from './components/Spark2049.vue'
 import DailyQuote from './components/DailyQuote.vue'
 import AiChat from './components/AiChat.vue'
+import MarginNotes from './components/MarginNotes.vue'
+import SidebarCurrentArticle from './components/SidebarCurrentArticle.vue'
 import { trackPageview } from './baidu-tongji.mjs'
 import { setupReadingPosition } from './reading-position.mjs'
 
 export default {
   extends: DefaultTheme,
-  
+
   Layout() {
     return h(DefaultTheme.Layout, null, {
       'layout-bottom': () => [
         h(ShareCard),
-        h(AiChat, { mode: 'float' }) 
+        h(AiChat, { mode: 'float' }),
+        h(SidebarCurrentArticle),
       ],
-      
-      // 👇 用数组把每日一句和极简版聊天入口包起来
+
+      'aside-outline-before': () => h(MarginNotes),
+
+      // 用数组把每日一句和极简版聊天入口包起来
       'home-hero-after': () => [
-        h(DailyQuote), 
-        h(AiChat, { mode: 'inline' })
-      ]
+        h(DailyQuote),
+        h(AiChat, { mode: 'inline' }),
+      ],
     })
   },
-  
+
   enhanceApp({ app, router }) {
     app.component('ShareCard', ShareCard)
     app.component('Spark2049', Spark2049)
     app.component('DailyQuote', DailyQuote)
     app.component('AiChat', AiChat)
+    app.component('MarginNotes', MarginNotes)
+    app.component('SidebarCurrentArticle', SidebarCurrentArticle)
 
     setupReadingPosition(router, {
       onRouteChanged: (to) => trackPageview(to || undefined),

@@ -43,6 +43,309 @@
   text-indent: 0;
 }
 
+/* 《矛盾论》实验：将原书注释排成与正文相对的页边注。 */
+.margin-note-anchor {
+  position: relative;
+  top: -0.45em;
+  color: var(--vp-c-brand-1);
+  font-size: 0.68em;
+  font-weight: 700;
+  line-height: 0;
+  text-indent: 0;
+  white-space: nowrap;
+}
+
+.margin-note-target,
+.margin-note-sentence {
+  text-decoration-color: transparent;
+  text-decoration-line: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 5px;
+  transition: text-decoration-color 0.16s ease;
+}
+
+.margin-note-target.is-note-highlighted,
+.margin-note-sentence.is-note-highlighted {
+  text-decoration-color: var(--vp-c-brand-1);
+}
+
+.margin-notes-rail {
+  display: none;
+}
+
+.margin-note-inline-group {
+  display: block;
+  margin: 12px 0 20px 2em;
+  border-left: 2px solid color-mix(in srgb, var(--vp-c-brand-1) 45%, var(--vp-c-divider));
+  padding: 10px 14px;
+  background: color-mix(in srgb, var(--vp-c-brand-soft) 42%, transparent);
+  color: var(--vp-c-text-2);
+  font-size: 14px;
+  line-height: 1.75;
+  text-align: left;
+  text-indent: 0;
+}
+
+.margin-note-inline-item {
+  display: block;
+}
+
+.margin-note-inline-item + .margin-note-inline-item {
+  margin-top: 8px;
+}
+
+.margin-note-inline-number {
+  margin-right: 6px;
+  color: var(--vp-c-brand-1);
+  font-weight: 700;
+}
+
+.has-margin-notes-demo .margin-note-source,
+.has-margin-notes-demo .margin-note-source-heading,
+.has-margin-notes-demo .margin-note-source-divider {
+  display: none;
+}
+
+.reading-article-page .vp-doc {
+  font-size: clamp(17px, calc(15.5px + 0.35vw), 18px);
+  line-height: 1.95;
+}
+
+.reading-article-page .vp-doc p {
+  margin-top: 1em;
+  margin-bottom: 1em;
+  line-height: 1.95;
+}
+
+.reading-article-page .vp-doc p > br {
+  display: block;
+  margin-top: 0.72em;
+  content: '';
+}
+
+.reading-article-page .vp-doc h2 {
+  margin-top: 64px;
+  padding-top: 24px;
+}
+
+/* 文章题名和写作日期以正文列为基准居中。 */
+.reading-article-page .vp-doc h1:first-of-type,
+.reading-article-page .vp-doc h1:first-of-type + p {
+  text-align: center;
+  text-indent: 0;
+}
+
+.reading-article-page .vp-doc h1:first-of-type + p {
+  margin-top: 18px;
+  margin-bottom: 24px;
+}
+
+/* 文章目录只让当前文章保留展开能力，减少整列箭头和层级噪音。 */
+.reading-article-page
+  .VPSidebarItem.level-1.collapsible:not(.is-active):not(.has-active)
+  > .item
+  > .caret {
+  display: none;
+}
+
+.reading-article-page
+  .VPSidebarItem.level-1.collapsible:not(.is-active):not(.has-active)
+  > .items {
+  display: none !important;
+}
+
+/* 桌面端：解除 VitePress 的 1440px 居中外壳，让左目录真正贴近左侧。 */
+@media (min-width: 960px) {
+  .reading-article-page {
+    --vp-sidebar-width: clamp(232px, 15vw, 285px);
+  }
+
+  .reading-article-page .VPSidebar {
+    left: 0;
+    width: var(--vp-sidebar-width);
+    max-width: none;
+    padding-right: clamp(12px, 1.2vw, 20px);
+    padding-left: clamp(16px, 1.5vw, 26px);
+  }
+
+  .reading-article-page .VPContent.has-sidebar {
+    margin-left: 0;
+    padding-left: var(--vp-sidebar-width);
+    padding-right: 0;
+  }
+
+  .reading-article-page .VPNavBar.has-sidebar .title {
+    width: var(--vp-sidebar-width);
+    padding-right: 20px;
+    padding-left: clamp(16px, 1.5vw, 26px);
+  }
+
+  .reading-article-page .VPNavBar.has-sidebar .content,
+  .reading-article-page .VPNavBar.has-sidebar .divider {
+    padding-left: var(--vp-sidebar-width);
+  }
+
+  .reading-article-page .VPNavBar.has-sidebar .content {
+    padding-right: 24px;
+  }
+
+}
+
+/* 当可用宽度足以容纳三栏的最小舒适尺寸时，才启用页边注。 */
+@media (min-width: 1280px) {
+  .reading-article-page:not(.has-margin-notes-demo) .VPDoc .container {
+    margin: 0 auto;
+    width: min(100%, 1040px);
+    max-width: 1040px;
+  }
+
+  .reading-article-page:not(.has-margin-notes-demo) .VPDoc .content,
+  .reading-article-page:not(.has-margin-notes-demo) .VPDoc .content-container {
+    width: 100%;
+    max-width: none;
+  }
+
+  .reading-article-page:not(.has-margin-notes-demo) .VPDoc .aside {
+    display: none;
+  }
+
+  .has-margin-notes-demo {
+    --reading-content-width: clamp(760px, 58vw, 1040px);
+    --reading-note-width: clamp(300px, 20vw, 390px);
+    --reading-column-gap: clamp(8px, 0.7vw, 14px);
+  }
+
+  .has-margin-notes-demo .VPDoc {
+    padding-right: 8px;
+    padding-left: 8px;
+  }
+
+  .has-margin-notes-demo .VPDoc .aside {
+    display: block;
+    width: auto;
+    max-width: none;
+    padding-left: 0;
+  }
+
+  .has-margin-notes-demo .VPDoc .container {
+    display: grid;
+    grid-template-columns:
+      minmax(680px, 1fr)
+      var(--reading-note-width);
+    column-gap: var(--reading-column-gap);
+    margin: 0;
+    width: 100%;
+    max-width: none;
+  }
+
+  .has-margin-notes-demo .VPDoc .aside-container,
+  .has-margin-notes-demo .VPDoc .aside-curtain {
+    display: none;
+  }
+
+  .has-margin-notes-demo .VPDoc .content {
+    margin: 0;
+    width: auto;
+    min-width: 0;
+    padding-right: 0;
+    padding-left: 0;
+  }
+
+  .has-margin-notes-demo .VPDoc .content-container {
+    margin: 0 auto;
+    width: min(100%, var(--reading-content-width));
+    max-width: var(--reading-content-width);
+  }
+
+  .has-margin-notes-demo .margin-notes-rail {
+    position: absolute;
+    inset: 0 0 auto 0;
+    display: block;
+  }
+
+  .has-margin-notes-demo .margin-note-card {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    border-top: 1px solid var(--vp-c-divider);
+    padding: 10px 4px 0 0;
+    color: var(--vp-c-text-2);
+    font-family: var(--vp-font-family-base);
+    font-size: 13.5px;
+    line-height: 1.78;
+    text-align: left;
+  }
+
+  .has-margin-notes-demo .margin-note-card::before {
+    position: absolute;
+    top: -1px;
+    right: 100%;
+    width: 22px;
+    border-top: 1px solid color-mix(in srgb, var(--vp-c-brand-1) 55%, transparent);
+    content: '';
+  }
+
+  .has-margin-notes-demo .margin-note-card.is-shifted::before {
+    border-top-style: dashed;
+  }
+
+  .has-margin-notes-demo .margin-note-number {
+    margin-right: 5px;
+    color: var(--vp-c-brand-1);
+    font-weight: 700;
+  }
+
+  .has-margin-notes-demo .margin-note-text {
+    color: var(--vp-c-text-2);
+  }
+
+  .has-margin-notes-demo .margin-note-inline-group {
+    display: none;
+  }
+
+  .has-margin-notes-demo .chat-float-wrapper:not(.is-home) {
+    top: auto;
+    right: 24px;
+    bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .reading-article-page .chat-float-wrapper:not(.is-home) {
+    top: auto;
+    right: 24px;
+    bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  }
+
+}
+
+/* 放不下三栏时，目录退回抽屉，正文居中，注释进入对应句子之后。 */
+@media (min-width: 960px) and (max-width: 1279px) {
+  .has-margin-notes-demo .VPSidebar:not(.open) {
+    opacity: 0;
+    visibility: hidden;
+    transform: translateX(-100%);
+  }
+
+  .has-margin-notes-demo .VPSidebar.open {
+    width: min(320px, calc(100vw - 64px));
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(0);
+  }
+
+  .has-margin-notes-demo .VPContent.has-sidebar,
+  .has-margin-notes-demo .VPLocalNav.has-sidebar {
+    padding-left: 0;
+  }
+
+  .has-margin-notes-demo .VPLocalNav .menu {
+    display: flex;
+  }
+
+  .has-margin-notes-demo .VPDoc .content-container {
+    max-width: 720px;
+  }
+}
+
 /* =======================================================
    美化“立即开始阅读”按钮 (现代胶囊风)
    ======================================================= */

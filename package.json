@@ -9,7 +9,11 @@
     "rag:eval": "node scripts/rag/eval-retrieval.mjs",
     "rag:test-citations": "node scripts/rag/test-citations.mjs",
     "rag:build:lite": "node scripts/rag/build-index-lite.mjs",
-    "rag:chunks": "node scripts/rag/count-chunks.mjs"
+    "rag:chunks": "node scripts/rag/count-chunks.mjs",
+    "annotations:generate": "node scripts/annotations/generate-selectors.mjs",
+    "annotations:check": "node scripts/annotations/validate-selectors.mjs",
+    "annotations:sanitize": "node scripts/annotations/sanitize-results.mjs",
+    "annotations:review-report": "node scripts/annotations/export-review-report.mjs"
   },
   "devDependencies": {
     "dotenv": "^16.4.7",
