@@ -21,6 +21,9 @@ npm run annotations:check
 # 验证正文序号和脚注角标不会混淆
 npm run annotations:test-markers
 
+# 逐篇对照正文角标与底部注释，输出全站一致性审计
+npm run annotations:audit-markers
+
 # 将不确定结果导出为可勾选的 Markdown 复核清单
 npm run annotations:review-report
 
