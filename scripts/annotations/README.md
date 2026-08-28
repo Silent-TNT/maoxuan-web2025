@@ -18,6 +18,9 @@ npm run annotations:generate -- --force
 # 验证所有已采用选择器确实存在于 Markdown 原文
 npm run annotations:check
 
+# 验证正文序号和脚注角标不会混淆
+npm run annotations:test-markers
+
 # 将不确定结果导出为可勾选的 Markdown 复核清单
 npm run annotations:review-report
 

@@ -12,6 +12,7 @@
     "rag:chunks": "node scripts/rag/count-chunks.mjs",
     "annotations:generate": "node scripts/annotations/generate-selectors.mjs",
     "annotations:check": "node scripts/annotations/validate-selectors.mjs",
+    "annotations:test-markers": "node scripts/annotations/test-marker-detection.mjs",
     "annotations:sanitize": "node scripts/annotations/sanitize-results.mjs",
     "annotations:review-report": "node scripts/annotations/export-review-report.mjs"
   },

@@ -47,7 +47,10 @@ const articleSections = (link: string) => {
   return Array.from(readFileSync(file, 'utf8').matchAll(/^##\s+(.+?)\s*$/gm)).map((match) => {
     const sourceHeading = match[1].replace(/\s+#+\s*$/, '').trim()
     const text = sourceHeading
-      .replace(/\s*(?:[⑴-⒇]|〔\d{1,3}〕|[（(]\d{1,3}[）)])\s*$/, '')
+      .replace(
+        /\s*(?:[⑴-⒇]|〔\d{1,3}〕|[（(](?:2[1-9]|[3-9]\d|[1-9]\d{2,})[）)])\s*$/,
+        ''
+      )
       .trim()
     return { text, link: `${baseLink}#${slugifyHeading(sourceHeading)}` }
   })

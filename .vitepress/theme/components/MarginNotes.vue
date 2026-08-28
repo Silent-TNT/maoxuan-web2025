@@ -134,6 +134,11 @@ const markerNumber = (marker: string) => {
   return match ? Number(match[0]) : 0
 }
 
+// 原文约定：1—20 的脚注使用 ⑴—⒇；（1）（2）等是正文枚举。
+// 由于没有同组的 21 以上字符，脚注从（21）开始改用括号数字。
+const referenceMarkerPattern = /[⑴-⒇]|[（(](?:2[1-9]|[3-9]\d|[1-9]\d{2,})[）)]/
+const referenceMarkerPatternGlobal = () => new RegExp(referenceMarkerPattern.source, 'g')
+
 const isBlockLeadingNumber = (node: Text, index: number) => {
   if (node.data.slice(0, index).trim()) return false
   let sibling = node.previousSibling
@@ -270,10 +275,10 @@ const wrapInferredTargets = (
   while (walker.nextNode()) {
     const node = walker.currentNode as Text
     if (!(node.compareDocumentPosition(noteHeading) & Node.DOCUMENT_POSITION_FOLLOWING)) continue
-    if (/[⑴-⒇]|[（(]\d{1,3}[）)]/.test(node.data)) textNodes.push(node)
+    if (referenceMarkerPattern.test(node.data)) textNodes.push(node)
   }
 
-  const markerPattern = /[⑴-⒇]|[（(]\d{1,3}[）)]/g
+  const markerPattern = referenceMarkerPatternGlobal()
   textNodes.forEach((node) => {
     const ranges = Array.from(node.data.matchAll(markerPattern))
       .map((match) => {
@@ -336,7 +341,7 @@ const wrapReferenceMarkers = (
     if (node.parentElement?.closest('.margin-note-anchor')) continue
     if (node.compareDocumentPosition(noteHeading) & Node.DOCUMENT_POSITION_FOLLOWING) {
       const hasReference = Array.from(
-        node.data.matchAll(/[⑴-⒇]|[（(]\d{1,3}[）)]/g)
+        node.data.matchAll(referenceMarkerPatternGlobal())
       ).some((match) => {
         const number = markerNumber(match[0])
         return noteNumbers.has(number) && !isBlockLeadingNumber(node, match.index || 0)
@@ -345,8 +350,11 @@ const wrapReferenceMarkers = (
     }
   }
 
-  const markerPattern = /[⑴-⒇]|[（(]\d{1,3}[）)]/g
-  const sentencePattern = /.*?(?:[。！？!?][”’》」』）】]?)(?:[⑴-⒇]|[（(]\d{1,3}[）)])*|.+$/g
+  const markerPattern = referenceMarkerPatternGlobal()
+  const sentencePattern = new RegExp(
+    `.*?(?:[。！？!?][”’》」』）】]?)(?:${referenceMarkerPattern.source})*|.+$`,
+    'g'
+  )
   for (const node of textNodes) {
     const fragment = document.createDocumentFragment()
     const sentenceMatches = node.data.match(sentencePattern) || [node.data]
