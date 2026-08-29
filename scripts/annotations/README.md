@@ -12,6 +12,9 @@ npm run annotations:generate -- --article="第一卷/006-星星之火，可以�
 # 断点续跑全部文章；已有结果会自动跳过
 npm run annotations:generate
 
+# 递归解析“见某文注〔某号〕”，只让 API 重判待复核的交叉引用项目
+npm run annotations:review-references
+
 # 强制重做全部文章
 npm run annotations:generate -- --force
 

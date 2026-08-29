@@ -39,6 +39,7 @@ export function parseArticle(markdown, route) {
   if (noteHeading < 0) return null
 
   const body = content.slice(0, noteHeading)
+  const title = body.match(/^#\s+(.+?)\s*$/m)?.[1]?.trim() || route.split('/').at(-1)
   const noteBlock = content.slice(noteHeading)
   const notes = new Map()
   const noteRegex = /^\s*〔(\d+)〕\s*(.+?)\s*$/gm
@@ -66,7 +67,7 @@ export function parseArticle(markdown, route) {
     })
   }
 
-  return { route, body, notes, occurrences }
+  return { route, title, body, notes, occurrences }
 }
 
 export function selectorFromExact(article, occurrence, exact) {

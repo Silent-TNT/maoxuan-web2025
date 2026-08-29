@@ -11,6 +11,8 @@
     "rag:build:lite": "node scripts/rag/build-index-lite.mjs",
     "rag:chunks": "node scripts/rag/count-chunks.mjs",
     "annotations:generate": "node scripts/annotations/generate-selectors.mjs",
+    "annotations:review-references": "node scripts/annotations/generate-selectors.mjs --review-references",
+    "annotations:review-hybrid-references": "node scripts/annotations/generate-selectors.mjs --hybrid-references",
     "annotations:check": "node scripts/annotations/validate-selectors.mjs",
     "annotations:test-markers": "node scripts/annotations/test-marker-detection.mjs",
     "annotations:audit-markers": "node scripts/annotations/audit-marker-consistency.mjs",

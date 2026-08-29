@@ -2,12 +2,19 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 import process from 'node:process'
 import { listMarkdownFiles, normalizeRoute, parseArticle } from './lib.mjs'
+import { buildReferenceIndex, resolveNoteReference } from './reference-resolver.mjs'
 
 const root = process.cwd()
 const reviewFile = path.join(root, '.vitepress/data/note-selectors.review.json')
 const outputFile = path.join(root, 'scripts/annotations/annotation-review-checklist.md')
 const volumeDirectory = path.join(root, 'scripts/annotations/review-checklists')
 const reviewData = JSON.parse(await fs.readFile(reviewFile, 'utf8'))
+const generatedDate = new Intl.DateTimeFormat('sv-SE', {
+  timeZone: 'Asia/Shanghai',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+}).format(new Date())
 
 const cleanText = (value = '') => String(value).replace(/\s+/g, ' ').trim()
 const escapeInline = (value = '') => cleanText(value).replace(/`/g, '\\`')
@@ -36,6 +43,7 @@ for (const file of await listMarkdownFiles(root)) {
   const article = parseArticle(await fs.readFile(file, 'utf8'), route)
   if (article) articleByRoute.set(route, article)
 }
+const referenceIndex = buildReferenceIndex(articleByRoute)
 
 const findOccurrence = (article, item) => {
   if (!article) return null
@@ -104,6 +112,27 @@ const reviewFocus = (item) => {
   return '候选已经通过原文位置校验，只因模型置信度不足而留审。重点判断语义是否对应，以及范围是否过长或过短。'
 }
 
+const referenceLines = (route, item) => {
+  const resolution = resolveNoteReference(referenceIndex, route, item.note)
+  if (!resolution.hasReferences) return []
+  const lines = ['', '**递归回溯：**', '']
+  for (const [pathIndex, steps] of resolution.paths.entries()) {
+    if (resolution.paths.length > 1) lines.push(`- 回溯路径 ${pathIndex + 1}`)
+    for (const [stepIndex, step] of steps.entries()) {
+      const prefix = resolution.paths.length > 1 ? '  ' : ''
+      const arrow = stepIndex === 0 ? '' : '→ '
+      lines.push(`${prefix}- ${arrow}《${step.title || '未找到文章'}》注〔${step.number}〕：${cleanText(step.annotation) || `**${step.status}**`}`)
+    }
+  }
+  if (resolution.finalAnnotations.length) {
+    lines.push('', `- **最终实质注释：${resolution.finalAnnotations.map(cleanText).join('；')}**`)
+  }
+  if (resolution.unresolved.length) {
+    lines.push('', `- ⚠ 有 ${resolution.unresolved.length} 条引用未能继续解析。`)
+  }
+  return lines
+}
+
 const routes = Object.keys(reviewData).sort(routeSort)
 const allItems = routes.flatMap((route) => reviewData[route].map((item) => ({ route, ...item })))
 const typeCounts = allItems.reduce((counts, item) => {
@@ -133,7 +162,7 @@ const sharedInstructions = [
 const indexLines = [
   '# 注释语义定位复核入口',
   '',
-  `生成日期：2026-08-28  `,
+  `生成日期：${generatedDate}  `,
   `涉及文章：${routes.length} 篇  `,
   `待复核：${allItems.length} 条`,
   '',
@@ -206,8 +235,9 @@ for (const { volume, routes: volumeRoutes, articles, items: itemCount } of volum
       }
       if (!context.found) lines.push('', '> ⚠ 未能按原角标位置完整还原上下文，请点击原文核对。')
 
-      lines.push('', '#### ② 原注释', '')
+      lines.push('', '#### ② 原注释与引用回溯', '')
       lines.push(`> ${cleanText(item.annotation) || '未记录'}`)
+      lines.push(...referenceLines(route, item))
 
       lines.push('', '#### ③ 模型判断', '')
       lines.push(`- 模型候选：${targets.length ? targets.map((target) => `\`${escapeInline(target)}\``).join('；') : '**无**'}`)
