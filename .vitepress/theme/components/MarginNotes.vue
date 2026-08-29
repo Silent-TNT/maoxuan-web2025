@@ -2,6 +2,7 @@
 import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { inBrowser, onContentUpdated, useRoute } from 'vitepress'
 import generatedArticleSelectors from '../../data/note-selectors.generated.json'
+import { balanceMarginNotePositions } from '../margin-note-layout.mjs'
 
 type MarginNote = {
   number: number
@@ -471,17 +472,25 @@ const calculatePositions = async () => {
     })
 
     await nextTick()
-    let previousBottom = 0
     const cards = Array.from(
       document.querySelectorAll<HTMLElement>('.margin-note-card')
     )
+    const positions = balanceMarginNotePositions(
+      notes.value.map((note, index) => ({
+        rawTop: note.rawTop,
+        height: cards[index]?.offsetHeight || 0,
+      })),
+      {
+        gap: 14,
+        minTop: 0,
+        maxUpShift: Math.min(240, window.innerHeight * 0.28),
+      },
+    )
 
-    notes.value = notes.value.map((note, index) => {
-      const cardHeight = cards[index]?.offsetHeight || 0
-      const top = Math.max(note.rawTop, previousBottom)
-      previousBottom = top + cardHeight + 14
-      return { ...note, top }
-    })
+    notes.value = notes.value.map((note, index) => ({
+      ...note,
+      top: positions[index] ?? note.rawTop,
+    }))
   })
 }
 
@@ -586,7 +595,7 @@ onBeforeUnmount(() => {
         v-for="note in notes"
         :key="note.number"
         class="margin-note-card"
-        :class="{ 'is-shifted': note.top > note.rawTop + 4 }"
+        :class="{ 'is-shifted': Math.abs(note.top - note.rawTop) > 4 }"
         :data-note="note.number"
         :style="{ top: `${note.top}px` }"
         @mouseenter="highlightNote(note.number)"

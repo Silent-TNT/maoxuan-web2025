@@ -3,6 +3,8 @@
     "docs:dev": "vitepress dev",
     "docs:build": "vitepress build",
     "docs:preview": "vitepress preview",
+    "test:margin-note-layout": "node scripts/test-margin-note-layout.mjs",
+    "test:reading-position": "node scripts/test-reading-position.mjs",
     "seo:check-links": "node scripts/check-vitepress-links.mjs",
     "rag:build": "node scripts/rag/build-index.mjs",
     "rag:check": "node scripts/rag/check-embedding.mjs",

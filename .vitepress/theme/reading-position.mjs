@@ -2,11 +2,14 @@ const STORAGE_KEY = 'maoxuan-reading-v1'
 const SAVE_THROTTLE_MS = 350
 const MIN_SCROLL_TO_SAVE = 120
 const MAX_STORED_PAGES = 80
-const RESTORE_MAX_ATTEMPTS = 10
+const RESTORE_STABLE_FRAMES = 2
+const RESTORE_MAX_FRAMES = 12
 
 let saveTimer = null
-let skipSaveOnce = false
+let suppressSaveUntil = 0
 let restoreGeneration = 0
+
+const RESTORE_CANCEL_EVENTS = ['wheel', 'touchstart', 'pointerdown', 'keydown']
 
 function normalizePath(path) {
   if (!path) return '/'
@@ -76,10 +79,7 @@ function getSavedPosition(store, path) {
 
 function saveReadingPosition(path) {
   if (typeof window === 'undefined') return
-  if (skipSaveOnce) {
-    skipSaveOnce = false
-    return
-  }
+  if (Date.now() < suppressSaveUntil) return
 
   const p = normalizePath(path || window.location.pathname)
   const { scrollY, ratio } = getScrollMetrics()
@@ -111,6 +111,11 @@ function scheduleSave(path) {
   saveTimer = setTimeout(() => saveReadingPosition(path), SAVE_THROTTLE_MS)
 }
 
+function cancelScheduledSave() {
+  clearTimeout(saveTimer)
+  saveTimer = null
+}
+
 function computeScrollTarget(saved) {
   const { maxScroll } = getScrollMetrics()
   if (typeof saved.ratio === 'number' && maxScroll > 0) {
@@ -129,33 +134,54 @@ function restoreReadingPosition(path) {
   const saved = getSavedPosition(store, p)
   if (!saved) return false
 
-  const target = computeScrollTarget(saved)
-  if (target < MIN_SCROLL_TO_SAVE) return false
-
   const generation = ++restoreGeneration
-  skipSaveOnce = true
+  let frameCount = 0
+  let stableFrames = 0
+  let previousHeight = -1
 
-  let attempts = 0
-  const apply = () => {
-    if (generation !== restoreGeneration) return
-    const { maxScroll } = getScrollMetrics()
-    const y = Math.min(target, maxScroll)
-    window.scrollTo({ top: y, left: 0, behavior: 'instant' })
+  const cleanup = () => {
+    RESTORE_CANCEL_EVENTS.forEach((eventName) => {
+      window.removeEventListener(eventName, cancel, true)
+    })
   }
 
-  const retry = () => {
-    if (generation !== restoreGeneration) return
-    apply()
-    attempts += 1
-    const diff = Math.abs(window.scrollY - target)
-    if (attempts < RESTORE_MAX_ATTEMPTS && diff > 40) {
-      window.setTimeout(retry, 80 + attempts * 50)
+  const cancel = () => {
+    if (generation === restoreGeneration) restoreGeneration += 1
+    cleanup()
+  }
+
+  const applyOnce = () => {
+    if (generation !== restoreGeneration) return cleanup()
+    if (normalizePath(window.location.pathname) !== p) return cancel()
+
+    const target = computeScrollTarget(saved)
+    cleanup()
+    if (target < MIN_SCROLL_TO_SAVE) return
+
+    suppressSaveUntil = Date.now() + SAVE_THROTTLE_MS + 50
+    window.scrollTo({ top: target, left: 0, behavior: 'instant' })
+  }
+
+  const waitForStableLayout = () => {
+    if (generation !== restoreGeneration) return cleanup()
+
+    const height = document.documentElement.scrollHeight
+    stableFrames = height === previousHeight ? stableFrames + 1 : 0
+    previousHeight = height
+    frameCount += 1
+
+    if (stableFrames >= RESTORE_STABLE_FRAMES || frameCount >= RESTORE_MAX_FRAMES) {
+      applyOnce()
+      return
     }
+
+    requestAnimationFrame(waitForStableLayout)
   }
 
-  requestAnimationFrame(() => {
-    window.setTimeout(retry, 120)
+  RESTORE_CANCEL_EVENTS.forEach((eventName) => {
+    window.addEventListener(eventName, cancel, { capture: true, passive: true })
   })
+  requestAnimationFrame(waitForStableLayout)
 
   return true
 }
@@ -169,7 +195,12 @@ function isColdPageLoad() {
   }
 }
 
-/** 冷启动在首页时，用整页跳转代替 router.go，避免先闪 404 再加载正文 */
+function toDocumentPath(path) {
+  const target = normalizePath(path)
+  return isArticlePath(target) ? `${target}.html` : target
+}
+
+/** 冷启动在首页时，直接打开构建产物中的文章页，避免落入 404 外壳。 */
 function redirectToLastReadIfNeeded() {
   const current = normalizePath(window.location.pathname)
   if (current !== '/') return false
@@ -182,7 +213,7 @@ function redirectToLastReadIfNeeded() {
   const target = normalizePath(last.path)
   if (target === current) return false
 
-  window.location.replace(target)
+  window.location.replace(toDocumentPath(target))
   return true
 }
 
@@ -208,25 +239,38 @@ export function setupReadingPosition(router, hooks = {}) {
     }
   })
 
-  if (typeof router?.onBeforeRouteChange === 'function') {
-    router.onBeforeRouteChange(() => {
+  if (router) {
+    const prevBeforeRouteChange = router.onBeforeRouteChange
+    router.onBeforeRouteChange = async (to) => {
+      const result = await prevBeforeRouteChange?.(to)
+      if (result === false) return false
+      restoreGeneration += 1
+      cancelScheduledSave()
       saveReadingPosition()
-    })
+    }
   }
 
-  if (typeof router?.onAfterRouteChanged === 'function') {
-    router.onAfterRouteChanged((to) => {
+  if (router) {
+    const prevAfterRouteChange = router.onAfterRouteChange ?? router.onAfterRouteChanged
+    router.onAfterRouteChange = async (to) => {
+      await prevAfterRouteChange?.(to)
       hooks.onRouteChanged?.(to)
-    })
+    }
   }
 
   const prevAfterPageLoad = router?.onAfterPageLoad
   if (router) {
-    router.onAfterPageLoad = (href) => {
-      prevAfterPageLoad?.(href)
+    router.onAfterPageLoad = async (href) => {
+      await prevAfterPageLoad?.(href)
       restoreReadingPosition(href)
     }
   }
 }
 
-export { normalizePath, isArticlePath, saveReadingPosition, restoreReadingPosition }
+export {
+  normalizePath,
+  isArticlePath,
+  toDocumentPath,
+  saveReadingPosition,
+  restoreReadingPosition,
+}
