@@ -19,6 +19,7 @@ const COST_PER_YEAR = 200
 let darkObserver = null
 onMounted(() => {
   syncDarkClass()
+  shuffleDonors()
   darkObserver = new MutationObserver(syncDarkClass)
   darkObserver.observe(document.documentElement, {
     attributes: true,
@@ -37,7 +38,7 @@ const donors = rawDonors.map(d => {
   // 1元 ≈ 0.9倍大小， 10元 ≈ 1.2倍， 84元 ≈ 1.56倍
   // 这样既能体现金额差距，又能防止大额打赏让火种占满全屏
   const scale = 0.8 + Math.log10(amount + 1) * 0.4
-  const supportDays = Math.round((amount / COST_PER_YEAR) * 365 * 100) / 100
+  const supportDays = Math.round((amount / COST_PER_YEAR) * 365)
   
   return {
     ...d,
@@ -47,33 +48,38 @@ const donors = rawDonors.map(d => {
   }
 })
 
-const DANMAKU_LANES = 6
-const danmakuList = computed(() => {
-  if (!donors.length) return []
-  const items = []
-  const laneCounters = Array(DANMAKU_LANES).fill(0)
+const shuffledDanmakuDonors = ref([])
 
-  for (let loop = 0; loop < 3; loop++) {
-    const pool = [...donors].sort(() => Math.random() - 0.5)
-    pool.forEach((d, i) => {
-      const lane = (loop * donors.length + i) % DANMAKU_LANES
-      const slot = laneCounters[lane]++
-      const duration = 18 + (lane % 3) * 2
-      // 负延迟：进入页面时弹幕已分散在轨道上，避免全部挤在左侧
-      const delay = -(slot * (duration / 2.2) + lane * 1.8)
-      items.push({
-        key: `dm-${loop}-${lane}-${slot}`,
-        name: d.name,
-        message: d.message || '星星之火，可以燎原',
-        amount: d.amount,
-        supportDays: d.supportDays,
-        lane,
-        duration,
-        delay,
-      })
-    })
+function shuffleDonors() {
+  const shuffled = [...donors]
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
   }
-  return items
+  shuffledDanmakuDonors.value = shuffled
+}
+
+const DANMAKU_LANES = 4
+const DANMAKU_INTERVAL = 5.5
+const danmakuList = computed(() => {
+  const displayDonors = shuffledDanmakuDonors.value.length ? shuffledDanmakuDonors.value : donors
+  if (!displayDonors.length) return []
+  // 每位支持者每轮只出现一次。完整一轮足够长，让屏幕上始终只保留少量、可读的寄语。
+  const cycleDuration = displayDonors.length * DANMAKU_INTERVAL
+  return displayDonors.map((d, i) => {
+    const lane = i % DANMAKU_LANES
+    return {
+      key: `dm-${i}`,
+      name: d.name,
+      message: d.message || '星星之火，可以燎原',
+      supportDays: d.supportDays,
+      lane,
+      mobileLane: Math.floor(i / 2) % 2,
+      mobileSkip: i % 2 === 1,
+      cycleDuration,
+      delay: 1.2 + i * DANMAKU_INTERVAL,
+    }
+  })
 })
 
 // --- 配置参数 ---
@@ -84,6 +90,8 @@ const today = new Date()
 
 // --- 自动计算金额与日期 ---
 const totalDonation = donors.reduce((sum, d) => sum + Number(d.amount || 0), 0)
+const totalSupportDays = Math.round((totalDonation / COST_PER_YEAR) * 365)
+const oneYuanDays = (365 / COST_PER_YEAR).toFixed(1)
 const extraDays = Math.floor((totalDonation / COST_PER_YEAR) * 365)
 const fundedDate = new Date(baseFundedDate.getTime() + extraDays * 24 * 60 * 60 * 1000)
 const formattedFundedDate = `${fundedDate.getFullYear()}年${fundedDate.getMonth() + 1}月${fundedDate.getDate()}日`
@@ -142,6 +150,10 @@ function closeDonateModal() {
         <span class="divider">/</span>
         <span class="stat-group">距建国百年还需 {{ daysLeft }} 天</span>
       </div>
+
+      <p class="support-summary">
+        {{ donors.length }} 位朋友已共同支持 ¥{{ totalDonation.toFixed(2) }}，为网站增加约 {{ totalSupportDays }} 天续航
+      </p>
       
       <div class="progress-container">
         <div class="progress-line-bg">
@@ -153,9 +165,10 @@ function closeDonateModal() {
       </div>
 
       <div class="action-area">
-        <div class="glass-btn" @click.stop="openDonateQr">
-          <span class="plus">+</span> 注入星火
-        </div>
+        <button type="button" class="glass-btn" @click.stop="openDonateQr">
+          <span aria-hidden="true">🔥</span> 为网站续航
+        </button>
+        <p class="micro-impact">1 元约可支持网站运行 {{ oneYuanDays }} 天</p>
       </div>
     </div>
 
@@ -189,9 +202,10 @@ function closeDonateModal() {
     <div v-if="showQR" class="qr-modal" @click="closeDonateModal">
       <div class="pay-panel" role="dialog" aria-label="捐赠" @click.stop>
         <button type="button" class="pay-panel-close" aria-label="关闭" @click="closeDonateModal">×</button>
-        <h3 class="pay-panel-title">注入星火</h3>
+        <h3 class="pay-panel-title">为网站续航</h3>
         <p class="pay-panel-desc">
           <span>域名、服务器、AI 算力成本约为{{ COST_PER_YEAR }}元/年</span>
+          <span>每一份支持都会化作一颗火种，你的名字、寄语和续航时间将留在星火墙上</span>
         </p>
         <div class="qr-duo">
           <div class="qr-slot">
@@ -201,7 +215,7 @@ function closeDonateModal() {
             <img src="/alipay-pay.jpg" alt="支付宝收款码" class="qr-img" />
           </div>
         </div>
-        <p class="pay-note">请备注 <strong>【用户+寄语】</strong>，便于登记在星火墙上</p>
+        <p class="pay-note">请备注 <strong>【名字+寄语】</strong>，便于登记在星火墙上</p>
         <button type="button" class="close-btn" @click="closeDonateModal">稍后再说</button>
       </div>
     </div>
@@ -212,15 +226,19 @@ function closeDonateModal() {
         v-for="item in danmakuList"
         :key="item.key"
         class="danmaku-item"
+        :class="{ 'danmaku-item--mobile-skip': item.mobileSkip }"
         :style="{
           '--lane': item.lane,
-          '--duration': `${item.duration}s`,
+          '--mobile-lane': item.mobileLane,
+          '--cycle-duration': `${item.cycleDuration}s`,
           '--delay': `${item.delay}s`,
         }"
       >
-        <span class="danmaku-name">@{{ item.name }}</span>
-        <span class="danmaku-msg">「{{ item.message }}」</span>
-        <span class="danmaku-amount">¥{{ item.amount }}（+{{ item.supportDays }}天）</span>
+        <span class="danmaku-msg">“{{ item.message }}”</span>
+        <span class="danmaku-meta">
+          <span class="danmaku-name">{{ item.name }}</span>
+          <span class="danmaku-impact">+{{ item.supportDays }}天</span>
+        </span>
       </div>
     </div>
   </div>
@@ -357,7 +375,7 @@ function closeDonateModal() {
 .time-stats {
   font-size: 12px;
   color: var(--spark-muted);
-  margin-bottom: 25px;
+  margin-bottom: 12px;
   letter-spacing: 1px;
   display: flex;
   justify-content: center;
@@ -409,6 +427,7 @@ function closeDonateModal() {
   border: 1px solid rgba(200, 40, 41, 0.35);
   color: #c82829;
   font-size: 13px;
+  font-family: inherit;
   cursor: pointer;
   transition: all 0.3s ease;
   letter-spacing: 1px;
@@ -419,7 +438,25 @@ function closeDonateModal() {
   border-color: #c82829;
   transform: translateY(-1px);
 }
-.glass-btn .plus { font-weight: 300; }
+.action-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.micro-impact {
+  margin: 9px 0 0;
+  color: var(--spark-muted);
+  font-size: 11px;
+  letter-spacing: 0.5px;
+}
+.support-summary {
+  margin: 0 20px 18px;
+  color: var(--spark-muted);
+  font-family: "Songti SC", "SimSun", serif;
+  font-size: 12px;
+  line-height: 1.6;
+  text-align: center;
+}
 
 /* 星火区 */
 .sparks-field {
@@ -513,42 +550,52 @@ function closeDonateModal() {
 .danmaku-item {
   position: absolute;
   left: 0;
-  top: calc(var(--lane, 0) * 34px + 10px);
+  top: calc(var(--lane, 0) * 50px + 8px);
   display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 14px;
-  border-radius: 999px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  padding: 7px 14px;
+  border-radius: 12px;
   background: var(--danmaku-bg);
   border: 1px solid var(--danmaku-border);
   box-shadow: 0 2px 10px var(--danmaku-shadow);
   font-size: 13px;
   color: var(--spark-text);
   white-space: nowrap;
-  animation: danmaku-run var(--duration, 18s) linear infinite;
+  opacity: 0;
+  animation: danmaku-run var(--cycle-duration, 120s) linear infinite;
   animation-delay: var(--delay, 0s);
   animation-fill-mode: backwards;
   will-change: transform;
 }
-.danmaku-name {
-  color: #c82829;
-  font-weight: 600;
-}
 .danmaku-msg {
-  color: var(--spark-muted);
+  color: #c82829;
   font-family: "Songti SC", "SimSun", serif;
-  max-width: 42vw;
+  font-weight: 600;
+  max-width: 46vw;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.danmaku-amount {
-  color: #c82829;
-  font-weight: 700;
-  font-size: 12px;
+.danmaku-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--spark-muted);
+  font-size: 10px;
+}
+.danmaku-name {
+  font-weight: 600;
+}
+.danmaku-impact {
+  color: var(--spark-muted);
+  font-weight: 400;
 }
 @keyframes danmaku-run {
-  0% { transform: translateX(100vw); }
-  100% { transform: translateX(calc(-100% - 24px)); }
+  0% { transform: translateX(100vw); opacity: 0; }
+  0.5% { opacity: 1; }
+  16% { transform: translateX(calc(-100% - 24px)); opacity: 1; }
+  16.1%, 100% { transform: translateX(calc(-100% - 24px)); opacity: 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -717,8 +764,15 @@ function closeDonateModal() {
   .intro-text { font-size: 14px; }
   .progress-line-bg { width: 200px; }
   .intro-box, .time-stats, .progress-container, .action-area { display: flex; justify-content: center; }
-  .danmaku-item { font-size: 12px; padding: 5px 10px; gap: 6px; }
-  .danmaku-msg { max-width: 36vw; }
-  .danmaku-zone { height: 180px; }
+  .support-summary { max-width: 320px; }
+  .sparks-field { padding-bottom: calc(160px + env(safe-area-inset-bottom)); }
+  .danmaku-item {
+    top: calc(var(--mobile-lane, 0) * 54px + 8px);
+    font-size: 12px;
+    padding: 6px 10px;
+  }
+  .danmaku-item--mobile-skip { display: none; }
+  .danmaku-msg { max-width: 68vw; }
+  .danmaku-zone { height: 125px; }
 }
 </style>

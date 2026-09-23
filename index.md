@@ -36,9 +36,9 @@ features:
     linkText: 进入阅读
 ---
 <div align="center" style="margin-top: 60px; padding: 20px; background-color: var(--vp-c-bg-soft); border-radius: 10px;">
-  <h3 style="margin-top: 0">微信扫码 加入社群</h3>
+  <h3 style="margin-top: 0">微信扫码 关注「来点儿毛选」</h3>
   
-  <img src="/mobile-qr.jpg" alt="公众号二维码 - 沉默的TNT" width="150" style="margin-top: 10px; border-radius: 6px;">
+  <img src="/mobile-qr.jpg" alt="公众号二维码 - 来点儿毛选" width="150" style="margin-top: 10px; border-radius: 6px;">
   
   <p style="
     color: var(--vp-c-text-2); 
@@ -48,7 +48,6 @@ features:
     text-indent: 0;
     line-height: 1.7;
   ">
-    公众号二维码 沉默的TNT<br>
-    学毛选，用毛选
+    从原文出发，把问题谈明白
   </p>
 </div>
