@@ -8,6 +8,7 @@ import DailyQuote from './components/DailyQuote.vue'
 import AiChat from './components/AiChat.vue'
 import MarginNotes from './components/MarginNotes.vue'
 import SidebarCurrentArticle from './components/SidebarCurrentArticle.vue'
+import ReadingSettings from './components/ReadingSettings.vue'
 import { trackPageview } from './baidu-tongji.mjs'
 import { setupReadingPosition } from './reading-position.mjs'
 
@@ -16,6 +17,7 @@ export default {
 
   Layout() {
     return h(DefaultTheme.Layout, null, {
+      'nav-bar-content-after': () => h(ReadingSettings),
       'layout-bottom': () => [
         h(ShareCard),
         h(AiChat, { mode: 'float' }),
