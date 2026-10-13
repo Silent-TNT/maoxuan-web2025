@@ -461,7 +461,7 @@ function closeDonateModal() {
           <div class="funded-marker" :style="{ left: fundedPercent + '%' }"></div>
           <div class="progress-line-active" :style="{ width: progressPercent + '%' }"><div class="glowing-dot"></div></div>
         </div>
-        <div class="timeline-caption"><span>2025 起点</span><span><i></i> 今天 · 已运行 {{ daysRun }} 天</span></div>
+        <div class="timeline-caption"><span>2025 · 星火初燃</span><span><i></i> 今天 · 已运行 {{ daysRun }} 天</span></div>
       </div>
 
       <div class="impact-stats">

@@ -1,16 +1,18 @@
 // .vitepress/theme/index.mts
 import DefaultTheme from 'vitepress/theme'
-import { h } from 'vue'
+import { defineAsyncComponent, h } from 'vue'
 import './style.css'
-import ShareCard from './components/ShareCard.vue'
-import Spark2049 from './components/Spark2049.vue'
-import DailyQuote from './components/DailyQuote.vue'
-import AiChat from './components/AiChat.vue'
-import MarginNotes from './components/MarginNotes.vue'
 import SidebarCurrentArticle from './components/SidebarCurrentArticle.vue'
 import ReadingSettings from './components/ReadingSettings.vue'
 import { trackPageview } from './baidu-tongji.mjs'
 import { setupReadingPosition } from './reading-position.mjs'
+
+// 阅读导航先初始化，附加功能独立加载，避免阻塞手机端目录交互。
+const ShareCard = defineAsyncComponent(() => import('./components/ShareCard.vue'))
+const Spark2049 = defineAsyncComponent(() => import('./components/Spark2049.vue'))
+const DailyQuote = defineAsyncComponent(() => import('./components/DailyQuote.vue'))
+const AiChat = defineAsyncComponent(() => import('./components/AiChat.vue'))
+const MarginNotes = defineAsyncComponent(() => import('./components/MarginNotes.vue'))
 
 export default {
   extends: DefaultTheme,

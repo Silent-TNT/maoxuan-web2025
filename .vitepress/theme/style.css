@@ -364,6 +364,8 @@
   }
 
   .has-margin-notes-demo .VPSidebar.open {
+    /* 此宽度仍使用抽屉，覆盖桌面端默认的 25，避免被 50 层的遮罩挡住。 */
+    z-index: calc(var(--vp-z-index-backdrop) + 1);
     width: min(320px, calc(100vw - 64px));
     opacity: 1;
     visibility: visible;
