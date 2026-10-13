@@ -15,13 +15,24 @@ function syncDarkClass() {
 }
 
 const darkMode = computed(() => isDark?.value ?? htmlHasDark.value)
+function toggleTheme() { isDark.value = !darkMode.value }
+const currentDay = ref('')
+function updateCurrentDay() {
+  const now = new Date()
+  currentDay.value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+}
+function isNewDonor(donor) {
+  if (donors.slice(-2).includes(donor)) return true
+  const date = String(donor.date).replace(/\./g, '-')
+  const age = (Date.parse(currentDay.value) - Date.parse(date)) / 86400000
+  return age >= 0 && age < 7
+}
 const COST_PER_YEAR = 200
 
 let darkObserver = null
 const universe = ref(null)
 const header = ref(null)
 const sparkPositions = ref([])
-const sparkExclusions = ref([])
 let layoutObserver = null
 let layoutFrame = 0
 let quoteTimer = null
@@ -36,12 +47,13 @@ let sparkBounds = { width: 0, height: 0 }
 const hoveredSpark = ref(-1)
 const sparkPointer = { x: 0, y: 0 }
 const quoteIndex = ref(0)
-const quotePaused = ref(false)
+let quoteHovered = false
+let quoteFocused = false
 const detailCard = ref(null)
 const detailPosition = ref({ left: '12px', top: '12px' })
 const detailPointer = ref({ side: 'bottom', style: {} })
 
-// 固定序列生成起点；火苗慢速游走并绕开内容，保持持续可见。
+// 固定序列生成起点；火苗可经过文字，仅在屏幕边缘转向。
 function noise(index, salt = 0) {
   const value = Math.sin((index + 1) * 127.1 + salt * 311.7) * 43758.5453
   return value - Math.floor(value)
@@ -59,18 +71,6 @@ function layoutSparks() {
   const { width, height } = root.getBoundingClientRect()
   sparkBounds = { width, height }
   const compact = width < 769
-  const content = contentRects()
-  const padding = compact ? 30 : 52
-  const back = root.querySelector('.back-home').getBoundingClientRect()
-  const blocked = [...content.map(r => ({
-    left: r.left - padding, right: r.right + padding,
-    top: r.top - padding, bottom: r.bottom + padding,
-  })), {
-    left: back.left - 28, right: back.right + 28,
-    top: back.top - 28, bottom: back.bottom + 28,
-  }, { left: width - 220, right: width, top: height - 126, bottom: height }]
-  const inside = (x, y, box) => x > box.left && x < box.right && y > box.top && y < box.bottom
-  sparkExclusions.value = blocked
   const placed = []
   const groups = compact
     ? [{ x: 0.19, y: 0.12, rx: 0.2, ry: 0.1 }, { x: 0.83, y: 0.38, rx: 0.13, ry: 0.31 }, { x: 0.46, y: 0.83, rx: 0.36, ry: 0.15 }]
@@ -86,7 +86,6 @@ function layoutSparks() {
       if (compact && attempt >= 160) x = attempt % 2 ? 26 : width - 26
       const edge = compact ? 26 : 42
       if (x < edge || x > width - edge || y < edge || y > height - edge) continue
-      if (blocked.some(box => inside(x, y, box))) continue
       if (placed.some(p => !p.hidden && Math.hypot(p.x - x, p.y - y) < (compact ? 44 : 64))) continue
       point = { x, y }
       break
@@ -117,16 +116,7 @@ function resetSparkPointer() { sparkPointer.x = sparkPointer.y = 0 }
 
 function keepSparkClear(x, y) {
   const { width, height } = sparkBounds
-  const clamp = p => ({ x: Math.max(26, Math.min(width - 26, p.x)), y: Math.max(26, Math.min(height - 26, p.y)) })
-  const point = clamp({ x, y })
-  const safe = p => !sparkExclusions.value.some(r => p.x > r.left && p.x < r.right && p.y > r.top && p.y < r.bottom)
-  if (safe(point)) return point
-  const candidates = sparkExclusions.value.flatMap(r => [
-    clamp({ x: r.left - 1, y: point.y }), clamp({ x: r.right + 1, y: point.y }),
-    clamp({ x: point.x, y: r.top - 1 }), clamp({ x: point.x, y: r.bottom + 1 }),
-  ]).filter(safe)
-  candidates.sort((a, b) => Math.hypot(a.x - point.x, a.y - point.y) - Math.hypot(b.x - point.x, b.y - point.y))
-  return candidates[0] || sparkBases.find(safe) || point
+  return { x: Math.max(26, Math.min(width - 26, x)), y: Math.max(26, Math.min(height - 26, y)) }
 }
 
 function animateSparks(time) {
@@ -189,16 +179,17 @@ function scheduleLayout() {
 
 onMounted(() => {
   syncDarkClass()
+  updateCurrentDay()
+  document.addEventListener('visibilitychange', updateCurrentDay)
   shuffleDonors()
   sparkMotionPreference = window.matchMedia('(prefers-reduced-motion: reduce)')
   sparkMotionPreference.addEventListener('change', syncSparkMotion)
+  sparkMotionPreference.addEventListener('change', syncQuoteMotion)
   document.addEventListener('visibilitychange', syncSparkMotion)
   window.addEventListener('pointermove', trackSparkPointer, { passive: true })
   document.documentElement.addEventListener('pointerleave', resetSparkPointer)
   syncSparkMotion()
-  if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    quoteTimer = window.setInterval(() => { if (!quotePaused.value && !showQR.value) quoteIndex.value += 1 }, 5000)
-  }
+  scheduleQuote()
   layoutObserver = new ResizeObserver(scheduleLayout)
   layoutObserver.observe(universe.value)
   layoutObserver.observe(header.value)
@@ -210,12 +201,14 @@ onMounted(() => {
   })
 })
 onUnmounted(() => {
+  document.removeEventListener('visibilitychange', updateCurrentDay)
   darkObserver?.disconnect()
   layoutObserver?.disconnect()
   cancelAnimationFrame(layoutFrame)
-  clearInterval(quoteTimer)
+  clearTimeout(quoteTimer)
   cancelAnimationFrame(sparkMotionFrame)
   sparkMotionPreference?.removeEventListener('change', syncSparkMotion)
+  sparkMotionPreference?.removeEventListener('change', syncQuoteMotion)
   document.removeEventListener('visibilitychange', syncSparkMotion)
   window.removeEventListener('pointermove', trackSparkPointer)
   document.documentElement.removeEventListener('pointerleave', resetSparkPointer)
@@ -334,7 +327,39 @@ const closeAll = () => activeIndex.value = -1
 function stepQuote(direction) {
   if (!donors.length) return
   quoteIndex.value = (quoteIndex.value + direction + donors.length) % donors.length
-  quotePaused.value = true
+  scheduleQuote(8000)
+}
+
+function scheduleQuote(delay = 5000) {
+  clearTimeout(quoteTimer)
+  if (sparkMotionPreference?.matches || quoteHovered || quoteFocused) return
+  quoteTimer = window.setTimeout(() => {
+    const selection = window.getSelection()
+    const readingSelection = !selection?.isCollapsed && header.value?.querySelector('#spark-quote')?.contains(selection?.anchorNode)
+    if (document.hidden || showQR.value || readingSelection) {
+      scheduleQuote(8000)
+      return
+    }
+    quoteIndex.value += 1
+    scheduleQuote()
+  }, delay)
+}
+
+function syncQuoteMotion() { scheduleQuote() }
+function holdQuote(event) {
+  if (event.pointerType === 'touch') return
+  quoteHovered = true
+  clearTimeout(quoteTimer)
+}
+function releaseQuote() { quoteHovered = false; scheduleQuote(8000) }
+function focusQuote(event) {
+  quoteFocused = event.target.matches(':focus-visible')
+  if (quoteFocused) clearTimeout(quoteTimer)
+}
+function blurQuote(event) {
+  if (event.currentTarget.contains(event.relatedTarget)) return
+  quoteFocused = false
+  scheduleQuote(8000)
 }
 
 function openDonateQr() {
@@ -358,13 +383,17 @@ function closeDonateModal() {
     <a href="/" class="back-home">
       <span class="arrow">←</span> 首页
     </a>
+    <button class="theme-toggle" type="button" :aria-label="darkMode ? '切换至白天模式' : '切换至夜间模式'" :title="darkMode ? '切换至白天模式' : '切换至夜间模式'" :aria-pressed="darkMode" @click.stop="toggleTheme">
+      <svg v-if="darkMode" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/></svg>
+      <svg v-else viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 14A8.5 8.5 0 0 1 10 3.5 8.5 8.5 0 1 0 20.5 14Z"/></svg>
+    </button>
 
     <div ref="header" class="header-section">
       <h1 class="title">星火计划</h1>
 
       <p class="intro-text">愿景：将该站维护至 2049 年</p>
 
-    <div id="spark-quote" class="danmaku-zone" @click.stop>
+    <div id="spark-quote" class="danmaku-zone" @click.stop @pointerenter="holdQuote" @pointerleave="releaseQuote" @focusin="focusQuote" @focusout="blurQuote">
       <Transition name="quote" mode="out-in">
       <div v-if="featuredQuote" :key="quoteIndex" class="danmaku-item" aria-live="polite" aria-atomic="true">
         <span class="danmaku-msg">“{{ featuredQuote.message || '星星之火，可以燎原' }}”</span>
@@ -377,7 +406,6 @@ function closeDonateModal() {
       </Transition>
       <div v-if="featuredQuote" class="quote-controls">
         <button class="quote-step" aria-label="上一条寄语" @click="stepQuote(-1)">‹</button>
-        <button v-if="quotePaused" class="quote-resume" @click="quotePaused = false">继续轮播 ↻</button>
         <button class="quote-step" aria-label="下一条寄语" @click="stepQuote(1)">›</button>
       </div>
     </div>
@@ -412,13 +440,13 @@ function closeDonateModal() {
     <div class="sparks-field">
       <button
         v-for="(donor, index) in donors"
-        :key="index"
+        :key="JSON.stringify([donor.date, donor.name, donor.amount, donor.message])"
         class="spark-item"
         :style="sparkPositions[index] || { visibility: 'hidden' }"
         :class="{ 'is-active': activeIndex === index }"
         type="button"
         :title="donor.name"
-        :aria-label="`查看 ${donor.name} 的星火寄语`"
+        :aria-label="`${isNewDonor(donor) ? '新点亮的星火，' : ''}查看 ${donor.name} 的星火寄语`"
         :aria-pressed="activeIndex === index"
         aria-controls="spark-detail"
         :aria-expanded="activeIndex === index"
@@ -432,6 +460,7 @@ function closeDonateModal() {
         <div class="fire-wrapper" :style="{ '--fire-scale': donor.scale }">
           <FireLottie :steady="activeIndex === index || hoveredSpark === index" :phase="noise(index, 7)" :visible="sparkPositions[index]?.visibility === 'visible'" />
         </div>
+        <span v-if="isNewDonor(donor)" class="spark-new">新</span>
 
       </button>
     </div>
@@ -525,6 +554,10 @@ function closeDonateModal() {
   z-index: 300;
 }
 .back-home:hover { color: #c82829; }
+.theme-toggle { position: absolute; top: 14px; right: 20px; z-index: 300; width: 36px; height: 36px; display: grid; place-items: center; border: 1px solid var(--spark-border); border-radius: 50%; background: var(--spark-card-bg); color: var(--spark-muted); cursor: pointer; }
+.theme-toggle svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.theme-toggle:hover { color: #c82829; }
+.theme-toggle:focus-visible { outline: 2px solid #c82829; outline-offset: 3px; }
 
 .header-section {
   padding-top: 11vh; width: 100%; display: flex; flex-direction: column; align-items: center; position: relative; z-index: 10;
@@ -612,6 +645,8 @@ function closeDonateModal() {
   transform: translateY(-1px);
 }
 .action-area {
+  position: relative;
+  z-index: 21;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -636,7 +671,7 @@ function closeDonateModal() {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  z-index: 9;
+  z-index: 20;
   background:
     radial-gradient(ellipse at 20% 43%, rgba(218, 135, 63, 0.025), transparent 32%),
     radial-gradient(ellipse at 79% 58%, rgba(218, 135, 63, 0.025), transparent 30%);
@@ -658,6 +693,7 @@ function closeDonateModal() {
 }
 .spark-item:hover, .spark-item:focus-visible, .spark-item.is-active { z-index: 2; }
 .spark-item:focus-visible { outline: 1px solid #c82829; outline-offset: 6px; border-radius: 50%; }
+.spark-new { position: absolute; left: 29px; top: 1px; padding: 1px 4px; border-radius: 5px; background: #b72228; color: #fff; font-size: 9px; line-height: 14px; box-shadow: 0 1px 4px rgba(120, 20, 20, 0.15); pointer-events: none; }
 
 .fire-wrapper {
   width: var(--ember-size);
@@ -725,11 +761,7 @@ function closeDonateModal() {
   color: var(--spark-muted);
   font-weight: 400;
 }
-.quote-resume { font-size: 10px; color: var(--spark-muted); opacity: 0.75; }
-.quote-resume { pointer-events: auto; background: none; border: 0; cursor: pointer; padding: 5px 10px; }
-.quote-resume:hover { color: #c82829; opacity: 1; }
 .quote-controls { position: absolute; inset: 0; pointer-events: none; }
-.quote-controls .quote-resume { position: absolute; left: 50%; bottom: 0; transform: translateX(-50%); }
 .quote-step { position: absolute; top: 26px; left: -6px; pointer-events: auto; width: 28px; height: 28px; border: 0; background: none; color: var(--spark-muted); opacity: 0.4; cursor: pointer; font-size: 18px; }
 .quote-step:last-child { left: auto; right: -6px; }
 .quote-step:hover { color: #c82829; }

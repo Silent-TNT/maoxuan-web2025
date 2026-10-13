@@ -21,6 +21,6 @@
 - Retrieved: 2026-10-13
 
 `.vitepress/theme/assets/fire.json` is the unmodified animation JSON extracted from `a/Main Scene.json` in `fire.lottie`.
-The page plays the full original timeline (32 frames at an original 24 fps), at 0.4× playback speed with staggered starting phases. No frames are omitted. No additional opacity animation is applied to the flame.
+The page uses a continuous-burning playback variant of this original file: frames 5–14 are sampled back and forth over a four-second sine cycle, with staggered phases. The flame shape still animates; zero speed at both endpoints avoids a hard loop reset. The ignition, extinction and empty portion is not played. The original JSON and downloaded Lottie file remain unchanged.
 
-`fire-still.svg` is a static render of frame 8 from the same original animation. It fades in underneath the live animation during its extinguishing/empty frames, keeping the flame continuously visible without cutting the original timeline. The outer flame opacity stays at 100%.
+No static continuity image or additional opacity animation is rendered. `fire-still.svg` is retained as an unused render of original frame 8.
