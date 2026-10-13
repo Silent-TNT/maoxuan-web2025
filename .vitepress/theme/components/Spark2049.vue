@@ -42,10 +42,12 @@ let sparkMotionPrevious = 0
 let sparkMotionPreference = null
 let sparkBases = []
 let sparkOffsets = []
+let sparkLocalOffsets = []
 let sparkWander = []
 let sparkBounds = { width: 0, height: 0 }
 const hoveredSpark = ref(-1)
 const sparkPointer = { x: 0, y: 0 }
+const sparkBreeze = { x: 0, y: 0, windX: 0, windY: 0, time: 0, active: false }
 const quoteIndex = ref(0)
 let quoteHovered = false
 let quoteFocused = false
@@ -96,6 +98,7 @@ function layoutSparks() {
     ? { x: noise(index, 12) * width, y: noise(index, 13) * height }
     : p)
   sparkOffsets = placed.map(() => ({ x: 0, y: 0 }))
+  sparkLocalOffsets = placed.map(() => ({ x: 0, y: 0 }))
   sparkBases = sparkBases.map(p => keepSparkClear(p.x, p.y))
   sparkWander = sparkBases.map((p, index) => ({ x: p.x, y: p.y, heading: noise(index, 14) * Math.PI * 2 }))
   sparkPositions.value = sparkBases.map((p, index) => ({
@@ -110,9 +113,27 @@ function trackSparkPointer(event) {
   const rect = universe.value.getBoundingClientRect()
   sparkPointer.x = Math.max(-1, Math.min(1, (event.clientX - rect.left - rect.width / 2) / (rect.width / 2)))
   sparkPointer.y = Math.max(-1, Math.min(1, (event.clientY - rect.top - rect.height / 2) / (rect.height / 2)))
+  const x = event.clientX - rect.left
+  const y = event.clientY - rect.top
+  const time = performance.now()
+  const delta = Math.max(8, time - sparkBreeze.time)
+  if (sparkBreeze.active && delta < 150) {
+    const windX = (x - sparkBreeze.x) / delta * 12
+    const windY = (y - sparkBreeze.y) / delta * 12
+    const limit = Math.max(1, Math.hypot(windX, windY) / 3)
+    sparkBreeze.windX = windX / limit
+    sparkBreeze.windY = windY / limit
+  } else {
+    sparkBreeze.windX = sparkBreeze.windY = 0
+  }
+  Object.assign(sparkBreeze, { x, y, time, active: true })
 }
 
-function resetSparkPointer() { sparkPointer.x = sparkPointer.y = 0 }
+function resetSparkPointer() {
+  sparkPointer.x = sparkPointer.y = 0
+  sparkBreeze.active = false
+  sparkBreeze.windX = sparkBreeze.windY = 0
+}
 
 function keepSparkClear(x, y) {
   const { width, height } = sparkBounds
@@ -124,12 +145,16 @@ function animateSparks(time) {
   sparkMotionPrevious = time
   sparkMotionTime += delta
   const easing = 1 - Math.exp(-delta / 700)
+  const breezeDecay = Math.exp(-delta / 900)
+  sparkBreeze.windX *= breezeDecay
+  sparkBreeze.windY *= breezeDecay
   const items = universe.value?.querySelectorAll('.spark-item') || []
   items.forEach((item, index) => {
     const base = sparkBases[index]
     const offset = sparkOffsets[index]
     const wander = sparkWander[index]
-    if (!base || !offset || !wander || activeIndex.value === index || hoveredSpark.value === index || showQR.value) return
+    const local = sparkLocalOffsets[index]
+    if (!base || !offset || !wander || !local || activeIndex.value === index || hoveredSpark.value === index || showQR.value) return
     const compact = sparkBounds.width < 769
     const depth = (compact ? 0.3 : 1) * (8 + noise(index, 9) * 10)
     wander.heading += Math.sin(sparkMotionTime / 45000 + index) * delta / 90000
@@ -145,7 +170,17 @@ function animateSparks(time) {
     const y = sparkPointer.y * depth
     offset.x += (x - offset.x) * easing
     offset.y += (y - offset.y) * easing
-    const finalPoint = keepSparkClear(wander.x + offset.x, wander.y + offset.y)
+    // 保留整屏跟随；局部仅额外偏移最多 3px，且移动速率不超过 2.5px/s。
+    const distance = Math.hypot(wander.x + offset.x - sparkBreeze.x, wander.y + offset.y - sparkBreeze.y)
+    const proximity = sparkBreeze.active ? Math.max(0, 1 - distance / 220) : 0
+    const influence = proximity * proximity * (3 - 2 * proximity)
+    const localEasing = 1 - Math.exp(-delta / 450)
+    const dx = (sparkBreeze.windX * influence - local.x) * localEasing
+    const dy = (sparkBreeze.windY * influence - local.y) * localEasing
+    const rateLimit = Math.max(1, Math.hypot(dx, dy) / (2.5 * delta / 1000))
+    local.x += dx / rateLimit
+    local.y += dy / rateLimit
+    const finalPoint = keepSparkClear(wander.x + offset.x + local.x, wander.y + offset.y + local.y)
     const finalX = finalPoint.x
     const finalY = finalPoint.y
     item.style.transform = `translate(${(finalX - base.x).toFixed(2)}px, ${(finalY - base.y).toFixed(2)}px)`
