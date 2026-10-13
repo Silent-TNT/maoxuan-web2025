@@ -49,6 +49,8 @@ const hoveredSpark = ref(-1)
 const sparkPointer = { x: 0, y: 0 }
 const sparkBreeze = { x: 0, y: 0, windX: 0, windY: 0, time: 0, active: false }
 const quoteIndex = ref(0)
+const quoteAnimated = ref(true)
+const manualQuoteRevision = ref(0)
 let quoteHovered = false
 let quoteFocused = false
 const detailCard = ref(null)
@@ -257,7 +259,7 @@ const donors = rawDonors.map(d => {
   // 1元 ≈ 0.9倍大小， 10元 ≈ 1.2倍， 84元 ≈ 1.56倍
   // 这样既能体现金额差距，又能防止大额打赏让火种占满全屏
   const scale = 0.8 + Math.log10(amount + 1) * 0.4
-  const supportDays = Math.round((amount / COST_PER_YEAR) * 365)
+  const supportDays = ((amount / COST_PER_YEAR) * 365).toFixed(1)
 
   return {
     ...d,
@@ -361,6 +363,9 @@ const closeAll = () => activeIndex.value = -1
 
 function stepQuote(direction) {
   if (!donors.length) return
+  quoteAnimated.value = false
+  // 重建过渡容器，手动切换也能立即结束正在进行的自动淡出。
+  manualQuoteRevision.value += 1
   quoteIndex.value = (quoteIndex.value + direction + donors.length) % donors.length
   scheduleQuote(8000)
 }
@@ -375,6 +380,7 @@ function scheduleQuote(delay = 5000) {
       scheduleQuote(8000)
       return
     }
+    quoteAnimated.value = true
     quoteIndex.value += 1
     scheduleQuote()
   }, delay)
@@ -428,8 +434,8 @@ function closeDonateModal() {
 
       <p class="intro-text">愿景：将该站维护至 2049 年</p>
 
-    <div id="spark-quote" class="danmaku-zone" @click.stop @pointerenter="holdQuote" @pointerleave="releaseQuote" @focusin="focusQuote" @focusout="blurQuote">
-      <Transition name="quote" mode="out-in">
+    <div id="spark-quote" class="danmaku-zone" :class="{ 'is-manual': !quoteAnimated }" @click.stop @pointerenter="holdQuote" @pointerleave="releaseQuote" @focusin="focusQuote" @focusout="blurQuote">
+      <Transition :key="manualQuoteRevision" name="quote" mode="out-in" :css="quoteAnimated">
       <div v-if="featuredQuote" :key="quoteIndex" class="danmaku-item" aria-live="polite" aria-atomic="true">
         <span class="danmaku-msg">“{{ featuredQuote.message || '星星之火，可以燎原' }}”</span>
         <span class="danmaku-meta">
@@ -513,16 +519,21 @@ function closeDonateModal() {
         <button type="button" class="pay-panel-close" aria-label="关闭" @click="closeDonateModal">×</button>
         <h3 class="pay-panel-title">为网站续航</h3>
         <p class="pay-panel-desc">
-          <span>累计支持 ¥{{ totalDonation.toFixed(2) }} · 运行成本约 ¥{{ COST_PER_YEAR }}/年</span>
-          <span>已支持至 {{ formattedFundedDate }}</span>
-          <span>每一份支持都会化作一颗火种，你的名字、寄语和续航时间将留在星火墙上</span>
+          <span>每一份支持都会化作一颗火种<br />你的名字、寄语和续航时间将留在星火墙上</span>
+          <span class="pay-cost">（运行成本约 ¥{{ COST_PER_YEAR }}/年）</span>
         </p>
         <div class="qr-duo">
           <div class="qr-slot">
-            <img src="/wechat-pay.jpg" alt="微信收款码" class="qr-img" />
+            <div class="qr-art qr-art--wechat">
+              <img src="/wechat-pay.jpg" alt="微信收款码" class="qr-img" />
+              <span class="qr-label">微信支付</span>
+            </div>
           </div>
           <div class="qr-slot">
-            <img src="/alipay-pay.jpg" alt="支付宝收款码" class="qr-img" />
+            <div class="qr-art qr-art--alipay">
+              <img src="/alipay-pay.jpg" alt="支付宝收款码" class="qr-img" />
+              <span class="qr-label">支付宝支付</span>
+            </div>
           </div>
         </div>
         <p class="pay-note">请备注 <strong>【名字+寄语】</strong>，便于登记在星火墙上</p>
@@ -804,6 +815,7 @@ function closeDonateModal() {
 .quote-leave-active { transition: opacity 0.8s ease-in-out; }
 .quote-enter-active { transition: opacity 0.7s ease-in-out; }
 .quote-leave-to, .quote-enter-from { opacity: 0; }
+.is-manual .quote-leave-active { display: none; }
 
 @media (prefers-reduced-motion: reduce) {
   .fire-wrapper,
@@ -897,6 +909,7 @@ function closeDonateModal() {
   text-align: center;
 }
 .pay-panel-desc span { display: block; }
+.pay-panel-desc .pay-cost { font-size: 13px; }
 .qr-duo {
   display: flex;
   gap: 16px;
@@ -917,6 +930,10 @@ function closeDonateModal() {
   box-shadow: 0 2px 14px rgba(0, 0, 0, 0.1);
   background: var(--spark-progress-bg);
 }
+.qr-art { position: relative; width: 100%; aspect-ratio: 1; flex-shrink: 0; container-type: inline-size; }
+.qr-art--wechat { --qr-color: #07c060; }
+.qr-art--alipay { --qr-color: #1777ff; }
+.qr-label { position: absolute; inset: 0 0 auto; height: 23%; display: flex; align-items: center; justify-content: center; background: var(--qr-color); color: white; font-family: "Songti SC", "SimSun", serif; font-size: clamp(12px, 7cqw, 18px); font-weight: 600; letter-spacing: 1px; line-height: 1; }
 .qr-img {
   width: 100%;
   height: 100%;
