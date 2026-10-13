@@ -1,4 +1,4 @@
-import "./chunk-V6TY7KAL.js";
+import "./chunk-JVWSFFO4.js";
 
 // node_modules/html2canvas/dist/html2canvas.esm.js
 var extendStatics = function(d, b) {

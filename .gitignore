@@ -3,3 +3,6 @@ node_modules
 .env
 api/rag-index.json
 .vitepress/data/note-selectors.review.json
+
+# 公众号写作素材仅保留在本地，不提交到仓库
+公众号素材/
