@@ -28,10 +28,9 @@ export default {
 
       'aside-outline-before': () => h(MarginNotes),
 
-      // 用数组把每日一句和极简版聊天入口包起来
+      // 首页保留每日一句，咨询室统一使用全站悬浮入口
       'home-hero-after': () => [
         h(DailyQuote),
-        h(AiChat, { mode: 'inline' }),
       ],
     })
   },

@@ -1,5 +1,7 @@
 {
   "scripts": {
+    "quotes:check": "node scripts/check-daily-quotes.mjs",
+    "predocs:build": "npm run quotes:check",
     "docs:dev": "vitepress dev",
     "docs:build": "vitepress build",
     "docs:preview": "vitepress preview",

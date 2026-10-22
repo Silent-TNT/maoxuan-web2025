@@ -1,32 +1,104 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { quotes } from '../../data/quotes.js'
 
-const currentQuote = ref({ text: '', source: '' })
-const isAnimating = ref(false)
+const currentIndex = ref(0)
+const currentQuote = computed(() => quotes[currentIndex.value] || { text: '', source: '' })
+const quoteAnimated = ref(false)
+const reducedMotion = ref(false)
+let quoteTimer = null
+let motionPreference = null
+let quoteHovered = false
+let quoteFocused = false
 
-const randomize = () => {
-  isAnimating.value = true
-  const randomIndex = Math.floor(Math.random() * quotes.length)
-  currentQuote.value = quotes[randomIndex]
-  setTimeout(() => { isAnimating.value = false }, 500)
+function randomize() {
+  if (!quotes.length) return
+  // 从其余 N-1 条中抽取，再跳过当前下标，确保每次切换都是另一句。
+  const hasCurrent = currentIndex.value >= 0
+  let nextIndex = Math.floor(Math.random() * (quotes.length - (hasCurrent ? 1 : 0)))
+  if (hasCurrent && nextIndex >= currentIndex.value) nextIndex += 1
+  if (quotes.length === 1) nextIndex = 0
+  currentIndex.value = nextIndex
 }
 
-onMounted(() => { randomize() })
+function scheduleQuote(delay = 8000) {
+  clearTimeout(quoteTimer)
+  if (quotes.length < 2 || reducedMotion.value || quoteHovered || quoteFocused || document.hidden) return
+  quoteTimer = window.setTimeout(() => {
+    quoteAnimated.value = true
+    randomize()
+    scheduleQuote()
+  }, delay)
+}
+
+function stepQuote() {
+  quoteAnimated.value = false
+  randomize()
+  scheduleQuote(8000)
+}
+
+function holdQuote(event) {
+  if (event.pointerType === 'touch') return
+  quoteHovered = true
+  clearTimeout(quoteTimer)
+}
+
+function releaseQuote() {
+  quoteHovered = false
+  scheduleQuote(8000)
+}
+
+function focusQuote(event) {
+  quoteFocused = event.target.matches(':focus-visible')
+  if (quoteFocused) clearTimeout(quoteTimer)
+}
+
+function blurQuote() {
+  quoteFocused = false
+  scheduleQuote(8000)
+}
+
+function syncQuoteMotion() {
+  reducedMotion.value = motionPreference.matches
+  scheduleQuote()
+}
+
+onMounted(() => {
+  randomize()
+  motionPreference = window.matchMedia('(prefers-reduced-motion: reduce)')
+  motionPreference.addEventListener('change', syncQuoteMotion)
+  document.addEventListener('visibilitychange', syncQuoteMotion)
+  syncQuoteMotion()
+})
+
+onUnmounted(() => {
+  clearTimeout(quoteTimer)
+  motionPreference?.removeEventListener('change', syncQuoteMotion)
+  document.removeEventListener('visibilitychange', syncQuoteMotion)
+})
 </script>
 
 <template>
   <div class="quote-container">
-    <div class="quote-card" @click="randomize" :class="{ 'fade-in': isAnimating }">
-      <div class="content-wrapper">
+    <div
+      class="quote-card"
+      role="button"
+      tabindex="0"
+      aria-label="切换下一条每日一语"
+      @click="stepQuote"
+      @keydown.enter.prevent="stepQuote"
+      @keydown.space.prevent="stepQuote"
+      @pointerenter="holdQuote"
+      @pointerleave="releaseQuote"
+      @focus="focusQuote"
+      @blur="blurQuote"
+    >
+      <div :key="currentIndex" class="content-wrapper" :class="{ 'quote-auto-enter': quoteAnimated }">
         <div class="main-text">“ {{ currentQuote.text }} ”</div>
         <div class="source-text">—— {{ currentQuote.source }}</div>
       </div>
-      
       <div class="seal">每日<br>一语</div>
     </div>
-    
-    <div class="tip">点击卡片切换</div>
   </div>
 </template>
 
@@ -112,20 +184,21 @@ onMounted(() => { randomize() })
   transform: rotate(-10deg);
 }
 
-.tip {
-  margin-top: 12px;
-  font-size: 12px;
-  color: var(--vp-c-text-3);
-  opacity: 0.5;
+/* 直接替换内容后淡入，避免先移除旧内容造成空白。 */
+.quote-auto-enter { animation: quoteFadeIn 0.7s ease-in-out; }
+@keyframes quoteFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
-/* 切换动画 */
-.fade-in .content-wrapper {
-  animation: fadeIn 0.4s ease;
+.quote-card:focus-visible {
+  outline: 2px solid var(--vp-c-brand-1);
+  outline-offset: 4px;
 }
-@keyframes fadeIn {
-  0% { opacity: 0; transform: translateY(5px); }
-  100% { opacity: 1; transform: translateY(0); }
+
+@media (prefers-reduced-motion: reduce) {
+  .quote-auto-enter { animation: none; }
+  .quote-card { transition: none; }
 }
 
 /* 移动端适配 */

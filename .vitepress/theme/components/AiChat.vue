@@ -16,7 +16,7 @@
     </div>
   </div>
 
-  <div v-if="mode === 'float'" class="chat-float-wrapper" :class="{ 'is-home': isHome }">
+  <div v-if="mode === 'float'" class="chat-float-wrapper">
     <button
       v-if="isArticlePage && selectionToolbarVisible && !isModalOpen"
       type="button"
@@ -31,7 +31,7 @@
       </svg>
       <span>解释这段</span>
     </button>
-    <button v-if="!isHome" class="chat-toggle-btn" @click="openModal">
+    <button class="chat-toggle-btn" @click="openModal">
       ★ 阅读咨询室
     </button>
 
