@@ -1,0 +1,26 @@
+{
+  "questionId": "emotion",
+  "version": "C",
+  "question": "最近每天上班都很累，回家只想躺着，感觉自己很没用。我现在不想听建议，只想有人听我说说。",
+  "model": "deepseek-chat",
+  "temperature": 0.65,
+  "systemHash": "374e38d6be500976a8f4ef8d3ee0168ccf91449e39122c907743a3af997cee66",
+  "retrievalStatus": "empty",
+  "responseId": "7aa80398-f0db-485c-b39f-99d1ce5d4226",
+  "responseModel": "deepseek-flash",
+  "usage": {
+    "prompt_tokens": 729,
+    "completion_tokens": 79,
+    "total_tokens": 808,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "prompt_cache_hit_tokens": 0,
+    "prompt_cache_miss_tokens": 729
+  },
+  "finishReason": "stop",
+  "rawReply": "听得出来，你现在很累，累到回家只想躺着，还因为这样觉得自己没用。这种自我怀疑本身也在消耗你。\n\n我不急着给你出主意。你想说多少就说多少：是工作里哪件事最磨人，还是每天通勤、加班这些琐碎堆在一起，让你觉得撑不住？或者只是想说一句“我真的累了”，也可以。我在这儿听着。",
+  "displayReply": "听得出来，你现在很累，累到回家只想躺着，还因为这样觉得自己没用。这种自我怀疑本身也在消耗你。\n\n我不急着给你出主意。你想说多少就说多少：是工作里哪件事最磨人，还是每天通勤、加班这些琐碎堆在一起，让你觉得撑不住？或者只是想说一句“我真的累了”，也可以。我在这儿听着。",
+  "chars": 132,
+  "elapsedMs": 1530
+}

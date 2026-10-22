@@ -1,0 +1,26 @@
+{
+  "questionId": "brief",
+  "version": "A",
+  "question": "《实践论》主要讨论什么？请用三句话回答。",
+  "model": "deepseek-chat",
+  "temperature": 0.65,
+  "systemHash": "eccb7654474cf8a85f31ba03d9a38a3122295cdebafc29fe3e5cf99f5dd87abe",
+  "retrievalStatus": "retrieved",
+  "responseId": "7f7bcfd6-c1ea-4775-81d6-38205dd7082b",
+  "responseModel": "deepseek-flash",
+  "usage": {
+    "prompt_tokens": 829,
+    "completion_tokens": 100,
+    "total_tokens": 929,
+    "prompt_tokens_details": {
+      "cached_tokens": 128
+    },
+    "prompt_cache_hit_tokens": 128,
+    "prompt_cache_miss_tokens": 701
+  },
+  "finishReason": "stop",
+  "rawReply": "《实践论》主要讲的是认识从哪里来、又往哪里去——认识离不开亲身参加变革现实的实践，只有在这种斗争中才能触到事物的现象、暴露其本质 [1]。它还讲真理的标准问题：理论的真理性要经过实践的检验，实践检验能纠正理论的不完全性和错误 [2]。一句话归总：实践是认识的来源，也是检验真理的标准，理论和实践要结合起来，脱离实践的理论是空理论，脱离理论的实践是瞎实践 [2]。",
+  "displayReply": "《实践论》主要讲的是认识从哪里来、又往哪里去——认识离不开亲身参加变革现实的实践，只有在这种斗争中才能触到事物的现象、暴露其本质 [1]。它还讲真理的标准问题：理论的真理性要经过实践的检验，实践检验能纠正理论的不完全性和错误 [2]。一句话归总：实践是认识的来源，也是检验真理的标准，理论和实践要结合起来，脱离实践的理论是空理论，脱离理论的实践是瞎实践 [2]。\n\n参考原文：[1] [《实践论》（第一卷）](/第一卷/017-实践论.html)[1]、[2] [《实践论》（第一卷）](/第一卷/017-实践论.html)[2]",
+  "chars": 181,
+  "elapsedMs": 1305
+}

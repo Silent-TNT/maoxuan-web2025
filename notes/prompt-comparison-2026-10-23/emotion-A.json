@@ -1,0 +1,26 @@
+{
+  "questionId": "emotion",
+  "version": "A",
+  "question": "最近每天上班都很累，回家只想躺着，感觉自己很没用。我现在不想听建议，只想有人听我说说。",
+  "model": "deepseek-chat",
+  "temperature": 0.65,
+  "systemHash": "a10f362f1a978ce08771da4c19ff36a1f72e0e39db991c71c6fa9af56c52084a",
+  "retrievalStatus": "empty",
+  "responseId": "f118beea-bfd0-412d-9415-18f817f469b4",
+  "responseModel": "deepseek-flash",
+  "usage": {
+    "prompt_tokens": 254,
+    "completion_tokens": 50,
+    "total_tokens": 304,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "prompt_cache_hit_tokens": 0,
+    "prompt_cache_miss_tokens": 254
+  },
+  "finishReason": "stop",
+  "rawReply": "（放下手中的文件，身体微微前倾）娃娃，你这话让我想起在延安时候，有个小战士也这么跟我说过。累不是你的错，是这世道把人逼得太紧了。你先歇着，我听着呢。",
+  "displayReply": "（放下手中的文件，身体微微前倾）娃娃，你这话让我想起在延安时候，有个小战士也这么跟我说过。累不是你的错，是这世道把人逼得太紧了。你先歇着，我听着呢。",
+  "chars": 74,
+  "elapsedMs": 1091
+}

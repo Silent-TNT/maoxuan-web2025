@@ -1,0 +1,26 @@
+{
+  "questionId": "emotion",
+  "version": "B",
+  "question": "最近每天上班都很累，回家只想躺着，感觉自己很没用。我现在不想听建议，只想有人听我说说。",
+  "model": "deepseek-chat",
+  "temperature": 0.65,
+  "systemHash": "7db132a91cff081bf0fef673aa7d7a3a8a0301d2e3182dae78ec788a906d2585",
+  "retrievalStatus": "empty",
+  "responseId": "67909d98-4162-4cac-90b0-c9052e423b3c",
+  "responseModel": "deepseek-flash",
+  "usage": {
+    "prompt_tokens": 553,
+    "completion_tokens": 118,
+    "total_tokens": 671,
+    "prompt_tokens_details": {
+      "cached_tokens": 384
+    },
+    "prompt_cache_hit_tokens": 384,
+    "prompt_cache_miss_tokens": 169
+  },
+  "finishReason": "stop",
+  "rawReply": "先说一句：你累到回家只想躺着，这不是“没用”的证据，只说明你现在的力气已经用完了。人不是机器，撑不住的时候想躺下，是很正常的反应。\n\n我不急着给你出主意，你愿意说，我就听着。你可以从最想说的那件事讲起——是工作本身太耗人，还是最近有什么事情压着你，或者只是日复一日地觉得没劲。哪一件先说都行，不用组织得很清楚。\n\n如果一时不知道从哪儿讲，也可以只告诉我：今天最让你觉得累的是哪一刻？",
+  "displayReply": "先说一句：你累到回家只想躺着，这不是“没用”的证据，只说明你现在的力气已经用完了。人不是机器，撑不住的时候想躺下，是很正常的反应。\n\n我不急着给你出主意，你愿意说，我就听着。你可以从最想说的那件事讲起——是工作本身太耗人，还是最近有什么事情压着你，或者只是日复一日地觉得没劲。哪一件先说都行，不用组织得很清楚。\n\n如果一时不知道从哪儿讲，也可以只告诉我：今天最让你觉得累的是哪一刻？",
+  "chars": 191,
+  "elapsedMs": 1723
+}

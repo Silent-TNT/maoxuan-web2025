@@ -1,0 +1,26 @@
+{
+  "questionId": "brief",
+  "version": "B",
+  "question": "《实践论》主要讨论什么？请用三句话回答。",
+  "model": "deepseek-chat",
+  "temperature": 0.65,
+  "systemHash": "78f827b473313e7abec4892dd036c481094ccb89c9f09d0d8e4a5d8c34829996",
+  "retrievalStatus": "retrieved",
+  "responseId": "4bb7606a-6c96-4b89-9017-bae21bbce23c",
+  "responseModel": "deepseek-flash",
+  "usage": {
+    "prompt_tokens": 1128,
+    "completion_tokens": 89,
+    "total_tokens": 1217,
+    "prompt_tokens_details": {
+      "cached_tokens": 512
+    },
+    "prompt_cache_hit_tokens": 512,
+    "prompt_cache_miss_tokens": 616
+  },
+  "finishReason": "stop",
+  "rawReply": "《实践论》主要讨论认识从哪里来、又怎样被检验：人的真知来自亲身参加变革现实的实践 [1]。它同时说明，理论的真理性要在实践中检验，错误也会在实践中得到纠正 [2]。所以它讲的是实践与认识的关系，落脚点是反对脱离实际的空谈和盲目自信 [1][2]。\n\n可参看：[《实践论》（第一卷）](/第一卷/017-实践论.html)",
+  "displayReply": "《实践论》主要讨论认识从哪里来、又怎样被检验：人的真知来自亲身参加变革现实的实践 [1]。它同时说明，理论的真理性要在实践中检验，错误也会在实践中得到纠正 [2]。所以它讲的是实践与认识的关系，落脚点是反对脱离实际的空谈和盲目自信 [1][2]。\n\n可参看：[《实践论》（第一卷）](/第一卷/017-实践论.html)[1]",
+  "chars": 160,
+  "elapsedMs": 1519
+}

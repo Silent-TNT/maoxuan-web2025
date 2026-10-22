@@ -175,7 +175,7 @@ export function buildRagSystemAddon(context) {
   if (!context) return ''
   return `
 
-【本次从《毛泽东选集》检索到的原著摘录（回答须优先依据以下内容，勿编造未出现的引文）】
+【本次从《毛泽东选集》检索到的原著摘录（解释原著时优先依据以下内容，勿编造未出现的引文；一般生活讨论仅在相关时使用）】
 ${context}
 
 【引用格式（严格执行）】
