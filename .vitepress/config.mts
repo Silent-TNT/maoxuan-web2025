@@ -79,7 +79,7 @@ const config = defineConfig({
     ...baiduHead,
   ],
   sitemap: {
-    hostname: 'https://xuemaoxuan.com',
+    hostname: 'https://www.xuemaoxuan.com',
     transformItems: transformSitemapItems,
   },
   

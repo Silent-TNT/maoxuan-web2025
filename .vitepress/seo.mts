@@ -1,6 +1,6 @@
 import type { HeadConfig, PageData, TransformContext } from 'vitepress'
 
-const SITE = 'https://xuemaoxuan.com'
+const SITE = 'https://www.xuemaoxuan.com'
 const VOLUME_RE = /^(第一|第二|第三|第四)卷\/\d+-/
 
 const NOINDEX_PATH_FRAGMENTS = ['api-examples', 'markdown-examples']
