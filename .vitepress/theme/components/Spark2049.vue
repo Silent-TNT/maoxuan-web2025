@@ -1,9 +1,9 @@
 <script setup>
-import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
+import { ref, computed, nextTick, onMounted, onUnmounted, watch } from 'vue'
 import { useData } from 'vitepress'
 import rawDonors from '../../donors.json'
 import { BaiduTrack } from '../baidu-tongji.mjs'
-import FireLottie from './FireLottie.vue'
+import SparkFlame from './SparkFlame.vue'
 
 const { isDark } = useData()
 const htmlHasDark = ref(false)
@@ -40,12 +40,14 @@ let sparkMotionFrame = 0
 let sparkMotionTime = 0
 let sparkMotionPrevious = 0
 let sparkMotionPreference = null
+let sparkItems = []
 let sparkBases = []
 let sparkOffsets = []
 let sparkLocalOffsets = []
 let sparkWander = []
-let sparkBounds = { width: 0, height: 0 }
+let sparkBounds = { left: 0, top: 0, width: 0, height: 0 }
 const hoveredSpark = ref(-1)
+const focusedSpark = ref(-1)
 const sparkPointer = { x: 0, y: 0 }
 const sparkBreeze = { x: 0, y: 0, windX: 0, windY: 0, time: 0, active: false }
 const quoteIndex = ref(0)
@@ -71,26 +73,29 @@ function contentRects() {
 
 function layoutSparks() {
   const root = universe.value
-  if (!root || !header.value) return
-  const { width, height } = root.getBoundingClientRect()
-  sparkBounds = { width, height }
+  if (!root) return false
+  const { left, top, width, height } = root.getBoundingClientRect()
+  const resized = width !== sparkBounds.width || height !== sparkBounds.height
+  sparkBounds = { left, top, width, height }
+  if (!resized || !width || !height) return false
   const compact = width < 769
+  const separationSquared = (compact ? 44 : 64) ** 2
+  const edge = compact ? 26 : 42
   const placed = []
   const groups = compact
     ? [{ x: 0.19, y: 0.12, rx: 0.2, ry: 0.1 }, { x: 0.83, y: 0.38, rx: 0.13, ry: 0.31 }, { x: 0.46, y: 0.83, rx: 0.36, ry: 0.15 }]
     : [{ x: 0.16, y: 0.46, rx: 0.15, ry: 0.31 }, { x: 0.84, y: 0.37, rx: 0.13, ry: 0.29 }, { x: 0.59, y: 0.82, rx: 0.28, ry: 0.13 }]
-  donors.forEach((donor, index) => {
+  donors.forEach((_, index) => {
+    const group = groups[index % groups.length]
     let point = null
     for (let attempt = 0; attempt < 200; attempt++) {
       const seed = index * 200 + attempt
-      const group = groups[index % groups.length]
       const scattered = index % 7 === 0 || attempt >= 140
       let x = (scattered ? 0.05 + noise(seed, 1) * 0.9 : group.x + (noise(seed, 1) + noise(seed, 2) - 1) * group.rx) * width
       const y = (scattered ? 0.06 + noise(seed, 3) * 0.88 : group.y + (noise(seed, 3) + noise(seed, 4) - 1) * group.ry) * height
       if (compact && attempt >= 160) x = attempt % 2 ? 26 : width - 26
-      const edge = compact ? 26 : 42
       if (x < edge || x > width - edge || y < edge || y > height - edge) continue
-      if (placed.some(p => !p.hidden && Math.hypot(p.x - x, p.y - y) < (compact ? 44 : 64))) continue
+      if (placed.some(p => !p.hidden && (p.x - x) ** 2 + (p.y - y) ** 2 < separationSquared)) continue
       point = { x, y }
       break
     }
@@ -102,21 +107,26 @@ function layoutSparks() {
   sparkOffsets = placed.map(() => ({ x: 0, y: 0 }))
   sparkLocalOffsets = placed.map(() => ({ x: 0, y: 0 }))
   sparkBases = sparkBases.map(p => keepSparkClear(p.x, p.y))
-  sparkWander = sparkBases.map((p, index) => ({ x: p.x, y: p.y, heading: noise(index, 14) * Math.PI * 2 }))
-  sparkPositions.value = sparkBases.map((p, index) => ({
-    left: `${p.x}px`, top: `${p.y}px`, visibility: 'visible',
-    '--spark-opacity': '1',
-    '--ember-size': '18px',
+  sparkWander = sparkBases.map((p, index) => ({
+    x: p.x, y: p.y, heading: noise(index, 14) * Math.PI * 2,
+    depth: (compact ? 0.3 : 1) * (8 + noise(index, 9) * 10),
+    speed: (compact ? 4 : 7) + noise(index, 15) * (compact ? 3 : 5),
   }))
+  sparkPositions.value = sparkBases.map(p => ({
+    left: `${p.x}px`, top: `${p.y}px`, visibility: 'visible',
+  }))
+  sparkItems.forEach(item => { item.style.transform = '' })
+  return true
 }
 
 function trackSparkPointer(event) {
-  if (event.pointerType === 'touch' || sparkMotionPreference?.matches) return
-  const rect = universe.value.getBoundingClientRect()
-  sparkPointer.x = Math.max(-1, Math.min(1, (event.clientX - rect.left - rect.width / 2) / (rect.width / 2)))
-  sparkPointer.y = Math.max(-1, Math.min(1, (event.clientY - rect.top - rect.height / 2) / (rect.height / 2)))
-  const x = event.clientX - rect.left
-  const y = event.clientY - rect.top
+  if (event.pointerType === 'touch' || sparkMotionPreference?.matches || showQR.value) return
+  const { left, top, width, height } = sparkBounds
+  if (!width || !height) return
+  const x = event.clientX - left
+  const y = event.clientY - top
+  sparkPointer.x = Math.max(-1, Math.min(1, (x - width / 2) / (width / 2)))
+  sparkPointer.y = Math.max(-1, Math.min(1, (y - height / 2) / (height / 2)))
   const time = performance.now()
   const delta = Math.max(8, time - sparkBreeze.time)
   if (sparkBreeze.active && delta < 150) {
@@ -143,40 +153,38 @@ function keepSparkClear(x, y) {
 }
 
 function animateSparks(time) {
+  sparkMotionFrame = requestAnimationFrame(animateSparks)
+  if (sparkMotionPrevious && time - sparkMotionPrevious < 32) return
   const delta = sparkMotionPrevious ? Math.min(time - sparkMotionPrevious, 48) : 16
   sparkMotionPrevious = time
   sparkMotionTime += delta
   const easing = 1 - Math.exp(-delta / 700)
   const breezeDecay = Math.exp(-delta / 900)
+  const localEasing = 1 - Math.exp(-delta / 450)
   sparkBreeze.windX *= breezeDecay
   sparkBreeze.windY *= breezeDecay
-  const items = universe.value?.querySelectorAll('.spark-item') || []
-  items.forEach((item, index) => {
+  sparkItems.forEach((item, index) => {
     const base = sparkBases[index]
     const offset = sparkOffsets[index]
     const wander = sparkWander[index]
     const local = sparkLocalOffsets[index]
-    if (!base || !offset || !wander || !local || activeIndex.value === index || hoveredSpark.value === index || showQR.value) return
-    const compact = sparkBounds.width < 769
-    const depth = (compact ? 0.3 : 1) * (8 + noise(index, 9) * 10)
+    if (!wander || activeIndex.value === index || hoveredSpark.value === index || focusedSpark.value === index) return
     wander.heading += Math.sin(sparkMotionTime / 45000 + index) * delta / 90000
-    const speed = (compact ? 4 : 7) + noise(index, 15) * (compact ? 3 : 5)
-    const proposedX = wander.x + Math.cos(wander.heading) * speed * delta / 1000
-    const proposedY = wander.y + Math.sin(wander.heading) * speed * delta / 1000
+    const proposedX = wander.x + Math.cos(wander.heading) * wander.speed * delta / 1000
+    const proposedY = wander.y + Math.sin(wander.heading) * wander.speed * delta / 1000
     const safePoint = keepSparkClear(proposedX, proposedY)
     if (Math.abs(safePoint.x - proposedX) > 0.01) wander.heading = Math.PI - wander.heading
     if (Math.abs(safePoint.y - proposedY) > 0.01) wander.heading = -wander.heading
     wander.x = safePoint.x
     wander.y = safePoint.y
-    const x = sparkPointer.x * depth
-    const y = sparkPointer.y * depth
+    const x = sparkPointer.x * wander.depth
+    const y = sparkPointer.y * wander.depth
     offset.x += (x - offset.x) * easing
     offset.y += (y - offset.y) * easing
     // 保留整屏跟随；局部仅额外偏移最多 3px，且移动速率不超过 2.5px/s。
     const distance = Math.hypot(wander.x + offset.x - sparkBreeze.x, wander.y + offset.y - sparkBreeze.y)
     const proximity = sparkBreeze.active ? Math.max(0, 1 - distance / 220) : 0
     const influence = proximity * proximity * (3 - 2 * proximity)
-    const localEasing = 1 - Math.exp(-delta / 450)
     const dx = (sparkBreeze.windX * influence - local.x) * localEasing
     const dy = (sparkBreeze.windY * influence - local.y) * localEasing
     const rateLimit = Math.max(1, Math.hypot(dx, dy) / (2.5 * delta / 1000))
@@ -187,30 +195,24 @@ function animateSparks(time) {
     const finalY = finalPoint.y
     item.style.transform = `translate(${(finalX - base.x).toFixed(2)}px, ${(finalY - base.y).toFixed(2)}px)`
   })
-  sparkMotionFrame = requestAnimationFrame(animateSparks)
 }
 
 function syncSparkMotion() {
   cancelAnimationFrame(sparkMotionFrame)
   sparkMotionPrevious = 0
-  if (!sparkMotionPreference.matches && !document.hidden) sparkMotionFrame = requestAnimationFrame(animateSparks)
-  else if (sparkMotionPreference.matches) {
+  if (sparkMotionPreference?.matches || showQR.value || document.hidden) {
     resetSparkPointer()
+    return
   }
+  sparkMotionFrame = requestAnimationFrame(animateSparks)
 }
 
 function scheduleLayout() {
-  cancelAnimationFrame(layoutFrame)
+  if (layoutFrame) return
   layoutFrame = requestAnimationFrame(() => {
-    layoutSparks()
-    nextTick(() => {
-      universe.value?.querySelectorAll('.spark-item').forEach((item, index) => {
-        item.style.transform = ''
-      })
-      const anchor = universe.value?.querySelector('.spark-item.is-active')
-      if (anchor && getComputedStyle(anchor).visibility === 'visible') positionDetail(anchor)
-      else closeAll()
-    })
+    layoutFrame = 0
+    if (layoutSparks()) nextTick(positionCurrentDetail)
+    else positionCurrentDetail()
   })
 }
 
@@ -219,12 +221,12 @@ onMounted(() => {
   updateCurrentDay()
   document.addEventListener('visibilitychange', updateCurrentDay)
   shuffleDonors()
+  sparkItems = Array.from(universe.value.querySelectorAll('.spark-item'))
   sparkMotionPreference = window.matchMedia('(prefers-reduced-motion: reduce)')
   sparkMotionPreference.addEventListener('change', syncSparkMotion)
   sparkMotionPreference.addEventListener('change', syncQuoteMotion)
   document.addEventListener('visibilitychange', syncSparkMotion)
-  window.addEventListener('pointermove', trackSparkPointer, { passive: true })
-  document.documentElement.addEventListener('pointerleave', resetSparkPointer)
+  window.addEventListener('keydown', closeDetailOnEscape)
   syncSparkMotion()
   scheduleQuote()
   layoutObserver = new ResizeObserver(scheduleLayout)
@@ -247,12 +249,11 @@ onUnmounted(() => {
   sparkMotionPreference?.removeEventListener('change', syncSparkMotion)
   sparkMotionPreference?.removeEventListener('change', syncQuoteMotion)
   document.removeEventListener('visibilitychange', syncSparkMotion)
-  window.removeEventListener('pointermove', trackSparkPointer)
-  document.documentElement.removeEventListener('pointerleave', resetSparkPointer)
+  window.removeEventListener('keydown', closeDetailOnEscape)
 })
 
 // --- 预处理捐赠数据 ---
-const donors = rawDonors.map(d => {
+const donors = rawDonors.map((d, index) => {
   const amount = Number(d.amount || 0)
 
   // 核心算法：利用对数曲线计算火苗大小。
@@ -265,7 +266,7 @@ const donors = rawDonors.map(d => {
     ...d,
     supportDays,
     scale: scale.toFixed(2), // 绑定给火苗的大小比例
-    delay: `${-noise(rawDonors.indexOf(d), 7) * 5}s`
+    delay: `${-noise(index, 7) * 4}s`
   }
 })
 
@@ -314,10 +315,14 @@ const fundedPercent = Math.min((fundedDuration / totalDuration) * 100, 100).toFi
 const showQR = ref(false)
 const activeIndex = ref(-1)
 
-const activeDonor = computed(() => donors[activeIndex.value] || null)
+const detailIndex = computed(() => hoveredSpark.value >= 0 ? hoveredSpark.value : activeIndex.value)
+const detailDonor = computed(() => donors[detailIndex.value] || null)
+const isDetailPreview = computed(() => detailIndex.value !== activeIndex.value)
+
+watch(showQR, syncSparkMotion)
 
 function positionDetail(anchor) {
-  if (!detailCard.value || !anchor) return
+  if (!detailCard.value || !anchor?.isConnected) return
   const rect = anchor.getBoundingClientRect()
   const card = detailCard.value.getBoundingClientRect()
   const clamp = p => ({
@@ -352,14 +357,33 @@ function positionDetail(anchor) {
     : { side: 'none', style: {} }
 }
 
-async function toggleSpark(index, event) {
-  event.stopPropagation()
-  const anchor = event.currentTarget
-  activeIndex.value = activeIndex.value === index ? -1 : index
-  await nextTick()
-  if (activeIndex.value === index) positionDetail(anchor)
+function positionCurrentDetail() {
+  positionDetail(sparkItems[detailIndex.value])
 }
-const closeAll = () => activeIndex.value = -1
+
+watch(detailIndex, positionCurrentDetail, { flush: 'post' })
+
+function previewSpark(index, event) {
+  if (event.pointerType === 'mouse' && !showQR.value) hoveredSpark.value = index
+}
+
+function leaveSpark(index) {
+  if (hoveredSpark.value === index) hoveredSpark.value = -1
+}
+
+function toggleSpark(index) {
+  activeIndex.value = activeIndex.value === index ? -1 : index
+  hoveredSpark.value = -1
+}
+
+function closeAll() {
+  activeIndex.value = -1
+  hoveredSpark.value = -1
+}
+
+function closeDetailOnEscape(event) {
+  if (event.key === 'Escape' && detailIndex.value >= 0) closeAll()
+}
 
 function stepQuote(direction) {
   if (!donors.length) return
@@ -418,12 +442,12 @@ function closeDonateModal() {
   <div
     ref="universe"
     class="spark-universe"
-    :class="{ 'spark-universe--dark': darkMode }"
+    :class="{ 'spark-universe--dark': darkMode, 'spark-universe--paused': showQR }"
     @click="closeAll"
+    @pointermove.passive="trackSparkPointer"
+    @pointerleave="resetSparkPointer"
   >
-    <a href="/" class="back-home">
-      <span class="arrow">←</span> 首页
-    </a>
+    <a href="/" class="back-home">首页</a>
     <button class="theme-toggle" type="button" :aria-label="darkMode ? '切换至白天模式' : '切换至夜间模式'" :title="darkMode ? '切换至白天模式' : '切换至夜间模式'" :aria-pressed="darkMode" @click.stop="toggleTheme">
       <svg v-if="darkMode" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/></svg>
       <svg v-else viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 14A8.5 8.5 0 0 1 10 3.5 8.5 8.5 0 1 0 20.5 14Z"/></svg>
@@ -484,34 +508,32 @@ function closeDonateModal() {
         :key="JSON.stringify([donor.date, donor.name, donor.amount, donor.message])"
         class="spark-item"
         :style="sparkPositions[index] || { visibility: 'hidden' }"
-        :class="{ 'is-active': activeIndex === index }"
+        :class="{ 'is-active': detailIndex === index }"
         type="button"
-        :title="donor.name"
         :aria-label="`${isNewDonor(donor) ? '新点亮的星火，' : ''}查看 ${donor.name} 的星火寄语`"
         :aria-pressed="activeIndex === index"
-        aria-controls="spark-detail"
-        :aria-expanded="activeIndex === index"
-        @mouseenter="hoveredSpark = index"
-        @mouseleave="hoveredSpark = -1"
-        @focus="hoveredSpark = index"
-        @blur="hoveredSpark = -1"
-        @keydown.esc="closeAll"
-        @click="(e) => toggleSpark(index, e)"
+        :aria-controls="detailIndex === index ? 'spark-detail' : undefined"
+        :aria-expanded="detailIndex === index"
+        @pointerenter="previewSpark(index, $event)"
+        @pointerleave="leaveSpark(index)"
+        @focus="focusedSpark = index"
+        @blur="focusedSpark = -1"
+        @click.stop="toggleSpark(index)"
       >
-        <div class="fire-wrapper" :style="{ '--fire-scale': donor.scale }">
-          <FireLottie :steady="activeIndex === index || hoveredSpark === index" :phase="noise(index, 7)" :visible="sparkPositions[index]?.visibility === 'visible'" />
+        <div class="fire-wrapper" :style="{ '--fire-scale': donor.scale, '--flame-delay': donor.delay }">
+          <SparkFlame />
         </div>
         <span v-if="isNewDonor(donor)" class="spark-new">新</span>
 
       </button>
     </div>
 
-    <div v-if="activeDonor" id="spark-detail" ref="detailCard" class="spark-card" :style="detailPosition" role="dialog" :aria-label="`${activeDonor.name} 的星火寄语`" @click.stop @keydown.esc="closeAll">
+    <div v-if="detailDonor" id="spark-detail" ref="detailCard" class="spark-card" :class="{ 'spark-card--preview': isDetailPreview }" :style="detailPosition" :role="isDetailPreview ? 'tooltip' : 'dialog'" :aria-label="`${detailDonor.name} 的星火寄语`" @click.stop>
       <span v-if="detailPointer.side !== 'none'" class="detail-pointer" :class="`detail-pointer--${detailPointer.side}`" :style="detailPointer.style" aria-hidden="true"></span>
-      <button class="detail-close" type="button" aria-label="关闭寄语卡片" @click="closeAll">×</button>
-      <div class="donor-name">@{{ activeDonor.name }}</div>
-      <div class="donor-msg">“{{ activeDonor.message || '星星之火，可以燎原' }}”</div>
-      <div class="donor-meta"><span>{{ activeDonor.date }}</span><span>¥{{ activeDonor.amount }}（+{{ activeDonor.supportDays }}天）</span></div>
+      <button v-if="!isDetailPreview" class="detail-close" type="button" aria-label="关闭寄语卡片" @click="closeAll">×</button>
+      <div class="donor-name">@{{ detailDonor.name }}</div>
+      <div class="donor-msg">“{{ detailDonor.message || '星星之火，可以燎原' }}”</div>
+      <div class="donor-meta"><span>{{ detailDonor.date }}</span><span>¥{{ detailDonor.amount }}（+{{ detailDonor.supportDays }}天）</span></div>
     </div>
 
     <div v-if="showQR" class="qr-modal" @click="closeDonateModal">
@@ -742,9 +764,8 @@ function closeDonateModal() {
 .spark-new { position: absolute; left: 29px; top: 1px; padding: 1px 4px; border-radius: 5px; background: #b72228; color: #fff; font-size: 9px; line-height: 14px; box-shadow: 0 1px 4px rgba(120, 20, 20, 0.15); pointer-events: none; }
 
 .fire-wrapper {
-  width: var(--ember-size);
-  height: var(--ember-size);
-  opacity: 1;
+  width: 18px;
+  height: 18px;
   transform: scale(var(--fire-scale));
   pointer-events: none;
 }
@@ -752,7 +773,10 @@ function closeDonateModal() {
 .fire-wrapper { filter: drop-shadow(0 1px 3px rgba(222, 123, 40, 0.18)); transition: filter 0.2s; }
 .spark-item:hover .fire-wrapper,
 .spark-item:focus-visible .fire-wrapper,
-.spark-item.is-active .fire-wrapper { opacity: 1 !important; animation-play-state: paused; filter: drop-shadow(0 0 5px rgba(226, 121, 35, 0.5)); }
+.spark-item.is-active .fire-wrapper { filter: drop-shadow(0 0 5px rgba(226, 121, 35, 0.5)); }
+.spark-item:focus-visible .spark-flame,
+.spark-item.is-active .spark-flame,
+.spark-universe--paused .spark-flame { animation-play-state: paused; }
 
 /* 固定位置的单条寄语，不再有横向运动或多卡片叠加。 */
 .danmaku-zone {
@@ -818,16 +842,14 @@ function closeDonateModal() {
 .is-manual .quote-leave-active { display: none; }
 
 @media (prefers-reduced-motion: reduce) {
-  .fire-wrapper,
-  .fire-core,
   .danmaku-item {
     animation: none !important;
   }
   .quote-enter-active, .quote-leave-active { transition: none; }
-  .fire-wrapper { transform: scale(var(--fire-scale)); }
 }
 
 .spark-card { --detail-bg: rgba(250, 249, 247, 0.96); --detail-border: rgba(126, 103, 82, 0.14); position: fixed; z-index: 40; width: 220px; max-width: calc(100vw - 24px); padding: 14px 16px 13px; border: 1px solid var(--detail-border); border-radius: 10px; background: var(--detail-bg); backdrop-filter: blur(12px); box-shadow: 0 4px 18px rgba(35, 29, 23, 0.06); animation: detail-appear 0.16s ease-out; }
+.spark-card--preview { pointer-events: none; }
 .spark-universe--dark .spark-card { --detail-bg: rgba(29, 28, 27, 0.96); --detail-border: rgba(230, 211, 189, 0.12); }
 @keyframes detail-appear { from { opacity: 0; } to { opacity: 1; } }
 .detail-pointer { position: absolute; width: 10px; height: 10px; background: var(--detail-bg); border: 1px solid var(--detail-border); transform: rotate(45deg); pointer-events: none; }

@@ -116,7 +116,7 @@ onUnmounted(() => {
   position: relative;
   width: 100%;
   max-width: 600px; /* 限制最大宽度，电脑上不至于太宽 */
-  height: 236px;
+  min-height: 236px;
   padding: 30px 40px;
   border-radius: 4px;
 
@@ -147,8 +147,7 @@ onUnmounted(() => {
   text-align: left;
   width: 100%;
   max-width: 480px;
-  max-height: 100%;
-  overflow: auto;
+  overflow-wrap: anywhere;
 }
 
 /* 正文：横排宋体 */
@@ -190,8 +189,8 @@ onUnmounted(() => {
 /* 移动端适配 */
 @media (max-width: 600px) {
   .quote-card {
-    padding: 20px;
-    height: 248px;
+    padding: 16px 20px;
+    min-height: 248px;
   }
   .main-text {
     font-size: 18px; /* 手机字号稍微小一点 */
@@ -200,7 +199,7 @@ onUnmounted(() => {
 
 @media (max-width: 359px) {
   .quote-card {
-    height: 280px;
+    min-height: 280px;
   }
 }
 </style>

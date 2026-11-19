@@ -206,7 +206,7 @@
                         >
                           <span class="evidence-number">[{{ s.sourceNumber || sourceIndex + 1 }}]</span>
                           <blockquote v-if="s.text">{{ sourceExcerpt(s) }}</blockquote>
-                          <a :href="sourceHref(s)">查看《{{ s.title }}》（{{ s.volume }}）全文 →</a>
+                          <a :href="sourceHref(s)">查看《{{ s.title }}》（{{ s.volume }}）全文</a>
                         </article>
                       </div>
                     </div>

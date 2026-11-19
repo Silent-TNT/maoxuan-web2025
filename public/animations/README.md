@@ -11,7 +11,7 @@
 - `lpc-flames.png` is the unmodified transparent sprite sheet, 64×72 pixels (12 frames of 16×24).
 - When enabled, the site displays the original frames at staggered phases with a soft glow and credits Sharm in the page footer. This trial is currently inactive.
 
-## Current: Lottie Fire Animation
+## Current: Lottie Fire artwork with CSS motion
 
 - Title: Fire Animation
 - Published by: grappphy (original animation by Yogi, as credited on the source page)
@@ -21,6 +21,4 @@
 - Retrieved: 2026-10-13
 
 `.vitepress/theme/assets/fire.json` is the unmodified animation JSON extracted from `a/Main Scene.json` in `fire.lottie`.
-The page uses a continuous-burning playback variant of this original file: frames 5–14 are sampled back and forth over a four-second sine cycle, with staggered phases. The flame shape still animates; zero speed at both endpoints avoids a hard loop reset. The ignition, extinction and empty portion is not played. The original JSON and downloaded Lottie file remain unchanged.
-
-No static continuity image or additional opacity animation is rendered. `fire-still.svg` is retained as an unused render of original frame 8.
+The page shares `fire-still.svg`, a render of frame 8, across all flames. A staggered CSS animation gently scales and tilts the artwork over a four-second cycle. Reduced-motion settings disable the animation. The original JSON and downloaded Lottie file are retained as source assets.

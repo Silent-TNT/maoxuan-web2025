@@ -26,11 +26,11 @@ function followFavorite(event: MouseEvent) {
 async function removeFavorite(id: string, index: number) {
   const next = readFavorites().filter((entry) => entry.id !== id)
   if (!saveFavorites(next)) {
-    message.value = '此浏览器暂时无法修改收藏'
+    message.value = '此浏览器暂时无法修改书签'
     return
   }
   rows.value = next
-  message.value = '已移除收藏'
+  message.value = '已移除书签'
   await nextTick()
   const links = list.value?.querySelectorAll<HTMLElement>('.favorite-entry-link')
   const nextLink = links?.[Math.min(index, links.length - 1)]
@@ -50,8 +50,8 @@ onBeforeUnmount(() => stopWatching?.())
 
 <template>
   <section ref="section" class="favorites-page" :class="{ 'in-drawer': inDrawer }" tabindex="-1">
-    <h1 v-if="!inDrawer" ref="heading" tabindex="-1">我的收藏</h1>
-    <p class="favorites-caption">收藏保存在当前浏览器。</p>
+    <h1 v-if="!inDrawer" ref="heading" tabindex="-1">我的书签</h1>
+    <p class="favorites-caption">书签保存在当前浏览器。</p>
     <ul v-if="rows.length" ref="list" class="favorites-list">
       <li v-for="(favorite, index) in rows" :key="favorite.id" class="favorite-entry">
         <a class="favorite-entry-link" :href="withBase(favoriteLink(favorite))" @click="followFavorite">
@@ -60,12 +60,12 @@ onBeforeUnmount(() => stopWatching?.())
         </a>
         <button
           type="button"
-          :aria-label="`删除收藏：${favorite.text.slice(0, 24)}`"
+          :aria-label="`删除书签：${favorite.text.slice(0, 24)}`"
           @click="removeFavorite(favorite.id, index)"
         >删除</button>
       </li>
     </ul>
-    <p v-else class="favorites-empty">还没有收藏。阅读时可点段落右侧的红心，也可选中文字后收藏。</p>
+    <p v-else class="favorites-empty">还没有书签。阅读时可添加段落书签，也可选中文字后点「划线」。</p>
     <span class="visually-hidden" role="status">{{ message }}</span>
   </section>
 </template>

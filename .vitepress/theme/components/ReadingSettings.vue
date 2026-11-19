@@ -175,15 +175,15 @@ onBeforeUnmount(() => {
     v-if="isArticle"
     type="button"
     class="reading-favorites-link"
-    aria-label="我的收藏"
+    aria-label="书签"
     aria-haspopup="dialog"
     aria-controls="reading-favorites-drawer"
     :aria-expanded="drawerOpen"
-    title="我的收藏"
+    title="书签"
     @click="openDrawer"
   >
     <span class="favorite-heart-icon is-filled" aria-hidden="true"></span>
-    <span class="reading-settings-label">我的收藏</span>
+    <span class="reading-settings-label">书签</span>
   </button>
   <ClientOnly v-if="isArticle">
     <Teleport to="body">
@@ -199,8 +199,8 @@ onBeforeUnmount(() => {
       >
         <div class="reading-favorites-drawer-surface">
           <header class="reading-favorites-drawer-header">
-            <h2 id="reading-favorites-drawer-title">我的收藏</h2>
-            <button type="button" aria-label="收起我的收藏" autofocus @click="closeDrawer">×</button>
+            <h2 id="reading-favorites-drawer-title">书签</h2>
+            <button type="button" aria-label="收起书签" autofocus @click="closeDrawer">×</button>
           </header>
           <div class="reading-favorites-drawer-content">
             <MyFavorites in-drawer :active="drawerOpen" @navigate="closeDrawer" />

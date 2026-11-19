@@ -43,6 +43,7 @@ let jumpTimer = 0
 let lastJump = ''
 let jumpParagraph: HTMLElement | undefined
 let prepareRun = 0
+let addBookmarkButton: HTMLButtonElement | null = null
 
 function showMessage(message: string) {
   announcement.value = message
@@ -123,7 +124,7 @@ function refreshMarks() {
     const saved = paragraphStarts.has(paragraph.start)
     const button = buttons.get(paragraph.start)
     if (!button) continue
-    const action = saved ? '取消收藏这段' : '收藏这段'
+    const action = saved ? '取消书签' : '添加书签'
     button.setAttribute('aria-pressed', String(saved))
     button.setAttribute('aria-label', action + '：' + paragraph.text.slice(0, 20))
     button.title = action
@@ -131,14 +132,19 @@ function refreshMarks() {
   setHighlight('reading-favorite-quote', favoriteQuoteRanges)
 }
 
-function toggleFavorite(kind: Kind, anchor: Anchor) {
+function toggleFavorite(kind: Kind, anchor: Anchor, { addOnly = false } = {}) {
   if (!article || !path.value) return
+  const action = kind === 'quote' ? '划线' : '书签'
   const records = readFavorites()
   const articlePath = path.value
   const existing = records.find((entry) =>
     entry.path === articlePath && entry.kind === kind && entry.text === anchor.text &&
     locateFavorite(entry, article!.text, article!.paragraphs) === anchor.start,
   )
+  if (existing && addOnly) {
+    showMessage('这段已添加书签')
+    return
+  }
   const next = existing
     ? records.filter((entry) => entry.id !== existing.id)
     : [{
@@ -150,17 +156,52 @@ function toggleFavorite(kind: Kind, anchor: Anchor) {
       createdAt: Date.now(),
     }, ...records]
   if (!saveFavorites(next)) {
-    showMessage('此浏览器暂时无法保存收藏')
+    showMessage(`此浏览器暂时无法保存${action}`)
     return
   }
   refreshMarks()
-  showMessage(existing ? '已取消收藏' : '已收藏')
+  showMessage(existing ? `已取消${action}` : kind === 'quote' ? '已划线' : '已添加书签')
 }
 
-function toggleParagraph(paragraph: Paragraph) {
+function toggleParagraph(paragraph: Paragraph, options?: { addOnly?: boolean }) {
   if (!article) return
   const anchor = makeFavoriteAnchor(article.text, paragraph.start, paragraph.end)
-  if (anchor) toggleFavorite('paragraph', anchor)
+  if (anchor) toggleFavorite('paragraph', anchor, options)
+}
+
+function bookmarkVisibleParagraph() {
+  if (!article || !addBookmarkButton) return
+  const viewport = window.visualViewport
+  const viewportTop = viewport?.offsetTop ?? 0
+  const top = Math.max(viewportTop, addBookmarkButton.closest('.VPLocalNav')?.getBoundingClientRect().bottom ?? 0)
+  const bottom = viewportTop + (viewport?.height ?? window.innerHeight)
+  const range = document.createRange()
+
+  const firstVisible = article.paragraphs.find(({ element, text, firstNode, lastNode }, index) => {
+    if (index === 0 && /^[（(][〇○零一二三四五六七八九十\d]{4}年.*[）)]$/u.test(text)) return false
+    const rect = element.getBoundingClientRect()
+    if (rect.bottom <= top || rect.top >= bottom) return false
+    range.setStart(firstNode.node, firstNode.offset)
+    range.setEnd(lastNode.node, lastNode.offset + lastNode.end - lastNode.start)
+    return Array.from(range.getClientRects()).some((line) =>
+      line.width > 0 && line.height > 0 && line.bottom > top && line.top < bottom,
+    )
+  })
+
+  if (firstVisible) toggleParagraph(firstVisible, { addOnly: true })
+  else showMessage('当前屏幕没有可添加书签的正文')
+}
+
+function attachAddBookmarkButton() {
+  const menu = document.querySelector('.VPLocalNav.has-sidebar > .container')
+  if (!menu || addBookmarkButton?.parentElement === menu) return
+  addBookmarkButton?.remove()
+  addBookmarkButton = document.createElement('button')
+  addBookmarkButton.type = 'button'
+  addBookmarkButton.className = 'reading-add-bookmark'
+  addBookmarkButton.textContent = '添加书签'
+  addBookmarkButton.addEventListener('click', bookmarkVisibleParagraph)
+  menu.insertBefore(addBookmarkButton, menu.querySelector(':scope > .VPLocalNavOutlineDropdown'))
 }
 
 function saveSelection() {
@@ -321,6 +362,8 @@ function detachArticle() {
   setHighlight('reading-favorite-quote', [])
   favoriteQuoteRanges = []
   toolbar.value = null
+  addBookmarkButton?.remove()
+  addBookmarkButton = null
   root?.removeEventListener('click', onArticleClick)
   for (const button of buttons.values()) button.remove()
   for (const element of blocks.keys()) element.classList.remove('reading-favorite-paragraph')
@@ -357,6 +400,7 @@ async function prepareArticle() {
     resizeObserver.observe(root)
   }
   updateArticle()
+  attachAddBookmarkButton()
   scheduleJump()
 }
 
@@ -421,13 +465,12 @@ onBeforeUnmount(() => {
         v-if="toolbar.quote"
         type="button"
         class="selection-favorite-btn"
-        aria-label="收藏选文"
+        aria-label="划线"
         :aria-pressed="toolbar.quoteSaved"
-        :title="toolbar.quoteSaved ? '取消收藏选文' : '收藏选文'"
+        :title="toolbar.quoteSaved ? '取消划线' : '划线'"
         @click="saveSelection"
       >
-        <span class="favorite-heart-icon" :class="{ 'is-filled': toolbar.quoteSaved }" aria-hidden="true"></span>
-        <span>{{ toolbar.quoteSaved ? '已收藏' : '收藏' }}</span>
+        {{ toolbar.quoteSaved ? '已划线' : '划线' }}
       </button>
     </div>
     <div class="reading-favorite-feedback" :class="{ 'is-visible': announcement }" role="status">
@@ -437,6 +480,31 @@ onBeforeUnmount(() => {
 </template>
 
 <style>
+.reading-add-bookmark {
+  display: none;
+}
+
+@media (max-width: 959px) {
+  .reading-add-bookmark {
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 50%;
+    transform: translateX(-50%);
+    display: grid;
+    place-items: center;
+    padding-inline: 10px;
+    color: var(--vp-c-text-2);
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+
+  .reading-add-bookmark:hover {
+    color: var(--vp-c-text-1);
+  }
+}
+
 .reading-favorite-paragraph {
   position: relative;
 }
@@ -504,7 +572,7 @@ onBeforeUnmount(() => {
 
 .selection-favorite-btn {
   position: relative;
-  min-width: 88px;
+  min-width: 66px;
 }
 
 .selection-favorite-btn:not(:first-child) {
@@ -523,11 +591,6 @@ onBeforeUnmount(() => {
 .reading-selection-toolbar button:disabled {
   opacity: 0.55;
   cursor: default;
-}
-
-.reading-selection-toolbar .favorite-heart-icon {
-  --favorite-heart-size: 16px;
-  flex: none;
 }
 
 @media (pointer: coarse) {

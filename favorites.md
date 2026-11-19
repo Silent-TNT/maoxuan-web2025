@@ -1,6 +1,6 @@
 ---
 layout: page
-title: 我的收藏
+title: 我的书签
 head:
   - - meta
     - name: robots

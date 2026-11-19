@@ -347,11 +347,18 @@ button:focus-visible > .favorite-heart-icon,
   }
 
   .reading-article-page .VPSidebar {
+    top: calc(var(--vp-layout-top-height, 0px) + var(--vp-nav-height) + 1px);
     left: 0;
     width: var(--vp-sidebar-width);
     max-width: none;
+    border-inline-end: 1px solid var(--vp-c-gutter);
+    padding-top: 0;
     padding-right: clamp(12px, 1.2vw, 20px);
     padding-left: clamp(16px, 1.5vw, 26px);
+  }
+
+  .reading-article-page .VPSidebar .curtain {
+    display: none;
   }
 
   .reading-article-page .VPContent.has-sidebar {
@@ -360,18 +367,26 @@ button:focus-visible > .favorite-heart-icon,
     padding-right: 0;
   }
 
-  .reading-article-page .VPNavBar.has-sidebar .title {
+  .reading-article-page .VPNavBar.has-sidebar:not(.home) {
+    background-color: var(--vp-nav-bg-color);
+  }
+
+  .reading-article-page .VPNavBar.has-sidebar .container > .title {
     width: var(--vp-sidebar-width);
     padding-right: 20px;
     padding-left: clamp(16px, 1.5vw, 26px);
   }
 
-  .reading-article-page .VPNavBar.has-sidebar .content,
+  .reading-article-page .VPNavBar.has-sidebar .VPNavBarTitle .title {
+    border-bottom-color: transparent;
+  }
+
   .reading-article-page .VPNavBar.has-sidebar .divider {
-    padding-left: var(--vp-sidebar-width);
+    padding-left: 0;
   }
 
   .reading-article-page .VPNavBar.has-sidebar .content {
+    padding-left: var(--vp-sidebar-width);
     padding-right: 24px;
   }
 
@@ -514,7 +529,9 @@ button:focus-visible > .favorite-heart-icon,
   .has-margin-notes-demo .VPSidebar.open {
     /* 此宽度仍使用抽屉，覆盖桌面端默认的 25，避免被 50 层的遮罩挡住。 */
     z-index: calc(var(--vp-z-index-backdrop) + 1);
+    top: var(--vp-layout-top-height, 0px);
     width: min(320px, calc(100vw - 64px));
+    padding-top: 32px;
     opacity: 1;
     visibility: visible;
     transform: translateX(0);
@@ -579,6 +596,10 @@ button:focus-visible > .favorite-heart-icon,
 
 .VPHome {
   --home-section-gap: 40px;
+}
+
+.VPHomeFeatures .link-text-icon {
+  display: none;
 }
 
 .VPHome .home-wechat-card {
@@ -730,16 +751,17 @@ button:focus-visible > .favorite-heart-icon,
   }
 
   .VPHomeHero:has(.home-hero-quote) .image {
+    display: flex;
     margin: 0;
-    /* 两列跟随左侧内容的高度，引文切换不影响首页布局。 */
-    contain: size;
+    min-height: auto;
   }
 
   .VPHomeHero:has(.home-hero-quote) .image-container,
-  .VPHomeHero .home-hero-quote,
-  .VPHomeHero .home-hero-quote .quote-container,
-  .VPHomeHero .home-hero-quote .quote-card {
-    height: 100%;
+  .VPHomeHero .home-hero-quote {
+    display: flex;
+    align-items: stretch;
+    flex: 1;
+    min-width: 0;
   }
 
   .VPHomeHero .home-hero-quote .quote-container {
@@ -749,6 +771,7 @@ button:focus-visible > .favorite-heart-icon,
   }
 
   .VPHomeHero .home-hero-quote .quote-card {
+    flex: 1;
     min-height: 0;
     padding: 0 clamp(24px, 3vw, 40px) 0 0;
   }
@@ -765,6 +788,12 @@ button:focus-visible > .favorite-heart-icon,
 @media (min-width: 1200px) {
   .VPHomeHero .home-hero-quote .quote-container {
     --home-quote-top-inset: 80px;
+  }
+}
+
+@media (min-width: 1200px) and (max-height: 860px) {
+  .VPHomeHero .home-hero-quote .quote-container {
+    --home-quote-top-inset: 56px;
   }
 }
 

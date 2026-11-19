@@ -48,7 +48,7 @@ onBeforeUnmount(() => window.removeEventListener('pageshow', refreshLastRead))
       :text="lastRead ? '继续阅读' : '开始阅读'"
       :aria-describedby="lastRead ? 'last-read-article' : undefined"
     />
-    <VPButton href="/favorites" theme="alt" text="我的收藏" />
+    <VPButton href="/favorites" theme="alt" text="我的书签" />
     <VPButton href="/donate" theme="alt" text="🔥星火计划2049" />
   </div>
   <p v-if="lastRead" id="last-read-article">
