@@ -145,6 +145,66 @@ button:focus-visible > .favorite-heart-icon,
   font-weight: 700;
 }
 
+.margin-note-inline-group.margin-note-compact-group {
+  margin: 2px 0 6px;
+  border: 0;
+  padding: 0;
+  background: none;
+  font-size: clamp(13px, calc(var(--reading-font-size) * 0.72), 17px);
+  line-height: 1.65;
+}
+
+.margin-note-compact-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  color: var(--vp-c-text-2);
+  font-size: 13px;
+}
+
+.margin-note-compact-toggle::after {
+  width: 6px;
+  height: 6px;
+  margin: -3px 2px 0;
+  border: solid currentColor;
+  border-width: 0 1px 1px 0;
+  content: '';
+  transform: rotate(45deg);
+}
+
+.margin-note-compact-toggle[aria-expanded='true']::after {
+  margin-top: 3px;
+  transform: rotate(225deg);
+}
+
+.margin-note-compact-toggle:hover {
+  background: var(--vp-c-bg-soft);
+}
+
+.margin-note-compact-toggle:focus-visible,
+.margin-note-anchor[role='button']:focus-visible {
+  outline: 2px solid var(--vp-c-brand-1);
+  outline-offset: 2px;
+}
+
+.margin-note-anchor[role='button'] {
+  cursor: pointer;
+}
+
+.margin-note-compact-content:not([hidden]) {
+  display: block;
+  margin: 3px 0 4px;
+  padding: 6px 10px;
+  border-left: 2px solid var(--vp-c-divider);
+}
+
+.margin-note-compact-content .margin-note-inline-item {
+  scroll-margin-top: calc(var(--vp-nav-height) + 64px);
+}
+
 .has-margin-notes-demo .margin-note-source,
 .has-margin-notes-demo .margin-note-source-heading,
 .has-margin-notes-demo .margin-note-source-divider {
@@ -192,6 +252,19 @@ button:focus-visible > .favorite-heart-icon,
   display: block;
   margin-top: 0.72em;
   content: '';
+}
+
+/* 段后注释入口自身换行，保留原换行节点供正文分段使用。 */
+.reading-article-page .vp-doc p > .margin-note-compact-group + br {
+  display: none;
+}
+
+.reading-article-page .vp-doc p:has(+ .margin-note-compact-group) {
+  margin-bottom: 0.4em;
+}
+
+.reading-article-page .vp-doc .margin-note-compact-group + p {
+  margin-top: 0.4em;
 }
 
 .reading-article-page .vp-doc h2 {

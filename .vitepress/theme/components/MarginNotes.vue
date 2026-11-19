@@ -25,6 +25,11 @@ const generatedSelectors = generatedArticleSelectors as Record<
 const route = useRoute()
 const notes = ref<MarginNote[]>([])
 const active = ref(false)
+const compactReading = inBrowser ? window.matchMedia('(max-width: 959px)') : undefined
+const inlineGroups: HTMLElement[] = []
+const inlineReferences: HTMLElement[] = []
+const activeCompactHighlights = new Set<HTMLElement>()
+const noteBlockSelector = 'p, li, h1, h2, h3, h4, h5, h6, blockquote'
 let anchors = new Map<number, HTMLElement>()
 let sentences = new Map<number, HTMLElement>()
 let targets = new Map<number, HTMLElement[]>()
@@ -423,6 +428,21 @@ const clearHighlight = (number: number) => {
   }
 }
 
+const createInlineNoteItem = (number: number, text: string) => {
+  const item = document.createElement('span')
+  item.className = 'margin-note-inline-item'
+
+  const marker = document.createElement('span')
+  marker.className = 'margin-note-inline-number'
+  marker.textContent = `注〔${number}〕`
+
+  const content = document.createElement('span')
+  content.className = 'margin-note-inline-text'
+  content.textContent = text
+  item.append(marker, content)
+  return item
+}
+
 const createInlineNotes = (sourceNotes: Array<{ number: number; text: string }>) => {
   const groups = new Map<HTMLElement, HTMLElement>()
 
@@ -438,22 +458,127 @@ const createInlineNotes = (sourceNotes: Array<{ number: number; text: string }>)
       group.className = 'margin-note-inline-group'
       placement.insertAdjacentElement('afterend', group)
       groups.set(placement, group)
+      inlineGroups.push(group)
     }
 
-    const item = document.createElement('span')
-    item.className = 'margin-note-inline-item'
-
-    const marker = document.createElement('span')
-    marker.className = 'margin-note-inline-number'
-    marker.textContent = `注〔${number}〕`
-
-    const content = document.createElement('span')
-    content.className = 'margin-note-inline-text'
-    content.textContent = text
-
-    item.append(marker, content)
-    group.append(item)
+    group.append(createInlineNoteItem(number, text))
   })
+}
+
+type CompactNoteGroup = {
+  button: HTMLButtonElement
+  content: HTMLElement
+  items: Map<number, HTMLElement>
+  references: HTMLElement[]
+  highlights: Set<HTMLElement>
+}
+
+function compactParagraphBreak(element: HTMLElement, block: HTMLElement) {
+  return Array.from(block.children).find((child) =>
+    child.tagName === 'BR' && (element.compareDocumentPosition(child) & Node.DOCUMENT_POSITION_FOLLOWING),
+  )
+}
+
+function setCompactNoteOpen(group: CompactNoteGroup, open: boolean) {
+  group.content.hidden = !open
+  group.button.textContent = `${open ? '收起注释' : '查看注释'}（${group.items.size}）`
+  group.button.setAttribute('aria-expanded', String(open))
+  group.references.forEach((reference) => reference.setAttribute('aria-expanded', String(open)))
+  for (const target of group.highlights) {
+    target.classList.toggle('is-note-highlighted', open)
+    if (open) activeCompactHighlights.add(target)
+    else activeCompactHighlights.delete(target)
+  }
+}
+
+function createCompactNotes(root: HTMLElement) {
+  const groups = new Map<Element, CompactNoteGroup>()
+  const textByNumber = new Map(notes.value.map(({ number, text }) => [number, text]))
+  root.querySelectorAll<HTMLElement>('.margin-note-anchor[data-note]').forEach((reference) => {
+    const number = Number(reference.dataset.note)
+    const text = textByNumber.get(number)
+    const block = reference.closest<HTMLElement>(noteBlockSelector)
+    if (!text || !block) return
+    // A source paragraph can end at a hard break inside a shared HTML <p>.
+    const paragraphBreak = compactParagraphBreak(reference, block)
+    const placement = paragraphBreak ?? block
+    let group = groups.get(placement)
+    if (!group) {
+      const wrapper = document.createElement('span')
+      wrapper.className = 'margin-note-inline-group margin-note-compact-group'
+      const button = document.createElement('button')
+      button.type = 'button'
+      button.className = 'margin-note-compact-toggle'
+      const content = document.createElement('span')
+      content.className = 'margin-note-compact-content'
+      content.id = `margin-note-compact-${groups.size + 1}`
+      button.setAttribute('aria-controls', content.id)
+      const newGroup: CompactNoteGroup = { button, content, items: new Map(), references: [], highlights: new Set() }
+      button.addEventListener('click', () => setCompactNoteOpen(newGroup, content.hidden))
+      wrapper.append(button, content)
+      if (paragraphBreak) paragraphBreak.before(wrapper)
+      else if (block.tagName === 'LI') block.append(wrapper)
+      else block.after(wrapper)
+      inlineGroups.push(wrapper)
+      groups.set(placement, newGroup)
+      group = newGroup
+    }
+    let item = group.items.get(number)
+    if (!item) {
+      item = createInlineNoteItem(number, text)
+      group.items.set(number, item)
+      group.content.append(item)
+    }
+
+    const exactTargets = targets.get(number)?.filter((target) =>
+      target.closest(noteBlockSelector) === block && compactParagraphBreak(target, block) === paragraphBreak,
+    )
+    if (exactTargets?.length) {
+      exactTargets.forEach((target) => group.highlights.add(target))
+    } else {
+      const sentence = reference.closest<HTMLElement>('.margin-note-sentence')
+      if (sentence) group.highlights.add(sentence)
+    }
+
+    group.references.push(reference)
+    reference.tabIndex = 0
+    reference.setAttribute('role', 'button')
+    reference.setAttribute('aria-controls', group.content.id)
+    const showNote = () => {
+      setCompactNoteOpen(group, true)
+      const { top } = item.getBoundingClientRect()
+      if (top < 120 || top > window.innerHeight - 56) item.scrollIntoView({ block: 'start' })
+    }
+    reference.onclick = showNote
+    reference.onkeydown = (event) => {
+      if (event.key !== 'Enter' && event.key !== ' ') return
+      event.preventDefault()
+      showNote()
+    }
+    inlineReferences.push(reference)
+  })
+  for (const group of groups.values()) setCompactNoteOpen(group, false)
+}
+
+function clearInlineNotes() {
+  for (const target of activeCompactHighlights) target.classList.remove('is-note-highlighted')
+  activeCompactHighlights.clear()
+  inlineGroups.splice(0).forEach((group) => group.remove())
+  inlineReferences.splice(0).forEach((reference) => {
+    reference.onclick = null
+    reference.onkeydown = null
+    for (const attribute of ['tabindex', 'role', 'aria-expanded', 'aria-controls']) {
+      reference.removeAttribute(attribute)
+    }
+  })
+}
+
+function refreshInlineNotes() {
+  clearInlineNotes()
+  if (!active.value) return
+  const root = document.querySelector<HTMLElement>('.VPDoc .vp-doc')
+  if (compactReading?.matches && root) createCompactNotes(root)
+  else createInlineNotes(notes.value)
 }
 
 const calculatePositions = async () => {
@@ -504,7 +629,7 @@ const clearPageState = () => {
     elements.forEach((target) => target.classList.remove('is-note-highlighted'))
   })
   targets.clear()
-  document.querySelectorAll('.margin-note-inline-group').forEach((element) => element.remove())
+  clearInlineNotes()
   document.body.classList.remove('has-margin-notes-demo')
   document.body.classList.remove('reading-article-page')
   resizeObserver?.disconnect()
@@ -559,7 +684,6 @@ const prepare = async () => {
   const inferredNotes = sourceNotes.filter((note) => !preciseSelectors?.[note.number])
   if (inferredNotes.length > 0) wrapInferredTargets(root, noteBlock, inferredNotes)
   wrapReferenceMarkers(root, noteBlock, sourceNotes)
-  createInlineNotes(sourceNotes)
   notes.value = sourceNotes.map(({ number, text }) => ({
     number,
     text,
@@ -568,6 +692,7 @@ const prepare = async () => {
   }))
   active.value = true
   document.body.classList.add('has-margin-notes-demo')
+  refreshInlineNotes()
 
   await nextTick()
   calculatePositions()
@@ -578,12 +703,14 @@ const prepare = async () => {
 
 onMounted(prepare)
 onContentUpdated(prepare)
+compactReading?.addEventListener('change', refreshInlineNotes)
 if (inBrowser) window.addEventListener('resize', calculatePositions)
 
 onBeforeUnmount(() => {
   prepareRun += 1
   clearPageState()
   cancelAnimationFrame(frame)
+  compactReading?.removeEventListener('change', refreshInlineNotes)
   if (inBrowser) window.removeEventListener('resize', calculatePositions)
 })
 </script>
