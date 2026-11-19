@@ -82,6 +82,7 @@ function saveReadingPosition(path) {
   if (Date.now() < suppressSaveUntil) return
 
   const p = normalizePath(path || window.location.pathname)
+  if (!isArticlePath(p)) return
   const { scrollY, ratio } = getScrollMetrics()
   const store = loadStore()
 
@@ -99,9 +100,7 @@ function saveReadingPosition(path) {
   const entry = { scrollY, ratio, updatedAt: Date.now() }
   store.pages[p] = entry
 
-  if (isArticlePath(p)) {
-    store.lastRead = { path: p, ...entry }
-  }
+  store.lastRead = { path: p, ...entry }
 
   persistStore(store)
 }
@@ -127,9 +126,8 @@ function computeScrollTarget(saved) {
 function restoreReadingPosition(path) {
   if (typeof window === 'undefined') return false
   if (window.location.hash) return false
-  if (!document.querySelector('.vp-doc')) return false
-
   const p = normalizePath(path || window.location.pathname)
+  if (!isArticlePath(p)) return false
   const store = loadStore()
   const saved = getSavedPosition(store, p)
   if (!saved) return false
@@ -154,8 +152,9 @@ function restoreReadingPosition(path) {
     if (generation !== restoreGeneration) return cleanup()
     if (normalizePath(window.location.pathname) !== p) return cancel()
 
-    const target = computeScrollTarget(saved)
     cleanup()
+    if (!document.querySelector('.VPDoc .vp-doc')) return
+    const target = computeScrollTarget(saved)
     if (target < MIN_SCROLL_TO_SAVE) return
 
     suppressSaveUntil = Date.now() + SAVE_THROTTLE_MS + 50
@@ -186,41 +185,18 @@ function restoreReadingPosition(path) {
   return true
 }
 
-function isColdPageLoad() {
-  try {
-    const nav = performance.getEntriesByType('navigation')[0]
-    return nav?.type === 'navigate' || nav?.type === 'reload'
-  } catch {
-    return true
-  }
-}
-
 function toDocumentPath(path) {
   const target = normalizePath(path)
   return isArticlePath(target) ? `${target}.html` : target
 }
 
-/** 冷启动在首页时，直接打开构建产物中的文章页，避免落入 404 外壳。 */
-function redirectToLastReadIfNeeded() {
-  const current = normalizePath(window.location.pathname)
-  if (current !== '/') return false
-  if (!isColdPageLoad()) return false
-
-  const store = loadStore()
-  const last = store.lastRead
-  if (!last?.path || !isArticlePath(last.path)) return false
-
-  const target = normalizePath(last.path)
-  if (target === current) return false
-
-  window.location.replace(toDocumentPath(target))
-  return true
+export function getLastReadPath() {
+  const path = loadStore().lastRead?.path
+  return typeof path === 'string' && isArticlePath(path) ? normalizePath(path) : null
 }
 
 export function setupReadingPosition(router, hooks = {}) {
   if (typeof window === 'undefined') return
-
-  if (redirectToLastReadIfNeeded()) return
 
   if ('scrollRestoration' in history) {
     history.scrollRestoration = 'manual'
@@ -246,7 +222,7 @@ export function setupReadingPosition(router, hooks = {}) {
       if (result === false) return false
       restoreGeneration += 1
       cancelScheduledSave()
-      saveReadingPosition()
+      if (router.route?.component) saveReadingPosition()
     }
   }
 

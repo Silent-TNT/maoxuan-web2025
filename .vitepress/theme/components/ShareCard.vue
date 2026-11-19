@@ -1,74 +1,18 @@
 <script setup>
-import { computed, ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import { ref, nextTick, watch } from 'vue'
 import { useData } from 'vitepress'
 import { BaiduTrack } from '../baidu-tongji.mjs'
-import {
-  sharePosterRequest,
-  cleanQuoteText,
-} from '../share-poster.mjs'
+import { sharePosterRequest } from '../share-poster.mjs'
 
 const { page } = useData()
-const isArticlePage = computed(() => /^第[一二三四]卷\/\d{3}-.+\.md$/u.test(page.value?.relativePath || ''))
 
 let html2canvas = null
-const visible = ref(false)
 const showModal = ref(false)
-const buttonStyle = ref({ top: '0px', left: '0px' })
 const quote = ref('')
 const posterBlocks = ref([])
 const posterSource = ref('')
 const generating = ref(false)
 const cardImage = ref(null)
-
-const handleSelection = () => {
-  if (showModal.value) return
-  if (!isArticlePage.value) {
-    visible.value = false
-    quote.value = ''
-    return
-  }
-
-  const selection = window.getSelection()
-  if (!selection?.rangeCount) {
-    visible.value = false
-    return
-  }
-  const range = selection.getRangeAt(0)
-  const startElement = range.startContainer?.nodeType === Node.ELEMENT_NODE
-    ? range.startContainer
-    : range.startContainer?.parentElement
-  const endElement = range.endContainer?.nodeType === Node.ELEMENT_NODE
-    ? range.endContainer
-    : range.endContainer?.parentElement
-  const article = startElement?.closest('.vp-doc')
-  if (!article || article !== endElement?.closest('.vp-doc')) {
-    visible.value = false
-    quote.value = ''
-    return
-  }
-  let text = selection.toString().trim()
-  text = cleanQuoteText(text)
-
-  if (text.length > 5 && text.length < 1500) {
-    quote.value = text
-    posterBlocks.value = []
-    posterSource.value = page.value.title || ''
-    const rect = range.getBoundingClientRect()
-    const explainButtonWidth = 126
-    const gap = 8
-    const cardButtonWidth = 126
-    const groupWidth = explainButtonWidth + gap + cardButtonWidth
-    const groupLeft = Math.max(12, Math.min(window.innerWidth - groupWidth - 12, rect.left + rect.width / 2 - groupWidth / 2))
-
-    buttonStyle.value = {
-      top: `${Math.max(12, rect.top - 44)}px`,
-      left: `${groupLeft + explainButtonWidth + gap}px`,
-    }
-    visible.value = true
-  } else {
-    visible.value = false
-  }
-}
 
 const generateCard = async () => {
   if (!html2canvas) {
@@ -80,7 +24,6 @@ const generateCard = async () => {
     }
   }
 
-  visible.value = false
   showModal.value = true
   generating.value = true
   cardImage.value = null
@@ -126,48 +69,14 @@ watch(sharePosterRequest, (req) => {
   if (!hasBlocks && !req.quote) return
   quote.value = req.quote || ''
   posterBlocks.value = hasBlocks ? req.blocks : []
-  posterSource.value = '教员咨询室'
-  visible.value = false
+  posterSource.value = req.source
+  sharePosterRequest.value = null
   generateCard()
-})
-
-watch(() => page.value?.relativePath, () => {
-  visible.value = false
-  quote.value = ''
-})
-
-const handleTouchEnd = (event) => {
-  if (event.target.closest('.float-btn')) return
-  setTimeout(handleSelection, 100)
-}
-
-onMounted(() => {
-  document.addEventListener('mouseup', handleSelection)
-  document.addEventListener('touchend', handleTouchEnd)
-})
-
-onUnmounted(() => {
-  document.removeEventListener('mouseup', handleSelection)
-  document.removeEventListener('touchend', handleTouchEnd)
-})
+}, { immediate: true })
 </script>
 
 <template>
   <div class="share-wrapper">
-    <div
-      v-if="visible"
-      class="float-btn"
-      :style="buttonStyle"
-      @mousedown.prevent="generateCard"
-      @touchstart.prevent="generateCard"
-    >
-      <svg class="action-icon" viewBox="0 0 20 20" aria-hidden="true">
-        <rect x="3.5" y="3.5" width="13" height="13" rx="2" />
-        <path d="m6.5 13 2.4-2.5 1.8 1.7 1.7-2 2.1 2.8M12.8 7.2h.01" />
-      </svg>
-      <span>生成卡片</span>
-    </div>
-
     <div v-if="showModal" class="modal-mask" @click.self="closeModal">
       <div class="modal-content">
         <div id="poster-node" class="poster-card" style="display: none;">
@@ -212,52 +121,6 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-/* 悬浮按钮 */
-.float-btn {
-  position: fixed;
-  z-index: 9998;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  width: 126px;
-  height: 38px;
-  padding: 0 12px;
-  border: 1px solid #d22b2b;
-  border-radius: 999px;
-  background: #fff;
-  color: #b4232b;
-  font-size: 13px;
-  font-weight: 700;
-  line-height: 1;
-  white-space: nowrap;
-  cursor: pointer;
-  box-shadow: 0 6px 18px rgba(91, 31, 34, 0.16);
-  transform: translateY(0);
-  transition: transform 0.18s ease, background-color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
-  pointer-events: auto;
-  user-select: none;
-}
-.float-btn:hover {
-  transform: translateY(-2px);
-  background: #fff5f5;
-  border-color: #b4232b;
-  box-shadow: 0 8px 22px rgba(91, 31, 34, 0.22);
-}
-.action-icon {
-  width: 16px;
-  height: 16px;
-  flex: 0 0 16px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.6;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-.float-btn::after {
-  display: none;
-}
-
 .modal-mask {
   position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
   background: rgba(0,0,0,0.9); z-index: 200000;

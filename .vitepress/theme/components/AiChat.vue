@@ -17,20 +17,6 @@
   </div>
 
   <div v-if="mode === 'float'" class="chat-float-wrapper">
-    <button
-      v-if="isArticlePage && selectionToolbarVisible && !isModalOpen"
-      type="button"
-      class="selection-explain-btn"
-      :style="selectionToolbarStyle"
-      @mousedown.prevent
-      @click="explainSelectionFromToolbar"
-    >
-      <svg class="selection-action-icon" viewBox="0 0 20 20" aria-hidden="true">
-        <path d="M4.25 4.5h11.5v8.25H9l-3.75 2.75v-2.75h-1z" />
-        <path d="M7 7.35h6M7 9.8h4" />
-      </svg>
-      <span>解释这段</span>
-    </button>
     <button class="chat-toggle-btn" @click="openModal">
       ★ 阅读咨询室
     </button>
@@ -381,6 +367,7 @@ import { marked, Renderer } from 'marked'
 import { useData, useRouter } from 'vitepress'
 import {
   WELCOME_TEXT,
+  articleExplanationRequest,
   sharedMessages,
   sharedIsLoading,
   isModalOpen,
@@ -405,7 +392,7 @@ import ChatDialog from './ChatDialog.vue'
 import ChatSharePicker from './ChatSharePicker.vue'
 import { BaiduTrack } from '../baidu-tongji.mjs'
 
-defineProps({ mode: { type: String, default: 'inline' } })
+const props = defineProps({ mode: { type: String, default: 'inline' } })
 const { frontmatter, page } = useData()
 const router = useRouter()
 const isHome = computed(() => frontmatter.value.layout === 'home')
@@ -419,15 +406,9 @@ const isReceiving = ref(false)
 const showSessionSidebar = ref(false)
 const openSessionMenuId = ref(null)
 const lastArticleSelection = ref('')
-const selectionToolbarVisible = ref(false)
 const articleSwitchNotice = ref(null)
 const dismissedSwitchPath = ref('')
 let previousArticleLocation = null
-const selectionToolbarPosition = ref({ left: 16, top: 16 })
-const selectionToolbarStyle = computed(() => ({
-  left: `${selectionToolbarPosition.value.left}px`,
-  top: `${selectionToolbarPosition.value.top}px`,
-}))
 const selectionPreview = computed(() => compactText(lastArticleSelection.value, 92))
 const readingContextTitle = computed(() => {
   if (!isArticlePage.value) return ''
@@ -615,7 +596,6 @@ watch(() => page.value?.relativePath, async () => {
   if (!isModalOpen.value) unlockPageScroll()
   cancelQuotedSourceHighlight()
   lastArticleSelection.value = ''
-  selectionToolbarVisible.value = false
   await nextTick()
   const current = currentArticleLocation()
   if (
@@ -687,15 +667,11 @@ onUnmounted(() => {
 function rememberArticleSelection() {
   if (!isArticlePage.value) {
     lastArticleSelection.value = ''
-    selectionToolbarVisible.value = false
     return
   }
   const selection = window.getSelection()
   const text = selection?.toString().trim()
-  if (!text || text.length < 2) {
-    if (!isModalOpen.value) selectionToolbarVisible.value = false
-    return
-  }
+  if (!text || text.length < 2) return
   const range = selection.rangeCount ? selection.getRangeAt(0) : null
   const startElement = range?.startContainer?.nodeType === Node.ELEMENT_NODE
     ? range.startContainer
@@ -704,25 +680,7 @@ function rememberArticleSelection() {
     ? range.endContainer
     : range?.endContainer?.parentElement
   const article = startElement?.closest('.vp-doc')
-  if (article && article === endElement?.closest('.vp-doc')) {
-    lastArticleSelection.value = text.slice(0, 1600)
-    const rect = range?.getBoundingClientRect()
-    if (rect && rect.width > 0) {
-      const buttonWidth = 126
-      const cardButtonWidth = 126
-      const gap = 8
-      const groupWidth = buttonWidth + gap + cardButtonWidth
-      const groupLeft = Math.max(12, Math.min(window.innerWidth - groupWidth - 12, rect.left + rect.width / 2 - groupWidth / 2))
-      selectionToolbarPosition.value = {
-        left: groupLeft,
-        top: Math.max(12, rect.top - 44),
-      }
-      selectionToolbarVisible.value = true
-    }
-  } else {
-    lastArticleSelection.value = ''
-    selectionToolbarVisible.value = false
-  }
+  lastArticleSelection.value = article && article === endElement?.closest('.vp-doc') ? text.slice(0, 1600) : ''
 }
 
 function currentReadingContext() {
@@ -802,20 +760,11 @@ async function startCurrentArticleConversation() {
 
 function clearReadingSelection() {
   lastArticleSelection.value = ''
-  selectionToolbarVisible.value = false
   window.getSelection()?.removeAllRanges()
 }
 
 function explainSelection() {
   if (!lastArticleSelection.value || sharedIsLoading.value) return
-  sendMessage('请结合上下文解释我刚才选中的这段原文。')
-}
-
-async function explainSelectionFromToolbar() {
-  if (!lastArticleSelection.value || sharedIsLoading.value) return
-  selectionToolbarVisible.value = false
-  openModal()
-  await nextTick()
   sendMessage('请结合上下文解释我刚才选中的这段原文。')
 }
 
@@ -1160,6 +1109,15 @@ function formatMessage(text) {
       return `href="${path}"`
     })
 }
+watch(articleExplanationRequest, async (text) => {
+  if (!text || props.mode !== 'float') return
+  articleExplanationRequest.value = ''
+  if (!isArticlePage.value || sharedIsLoading.value) return
+  lastArticleSelection.value = text.slice(0, 1600)
+  openModal()
+  await nextTick()
+  sendMessage('请结合上下文解释我刚才选中的这段原文。')
+}, { immediate: true })
 </script>
 
 <style scoped>
@@ -1256,42 +1214,6 @@ function formatMessage(text) {
 .chat-toggle-btn:hover {
   opacity: 0.9;
   transform: scale(1.05);
-}
-.selection-explain-btn {
-  position: fixed;
-  z-index: 9998;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  width: 126px;
-  height: 38px;
-  padding: 0 14px;
-  border: 1px solid #b4232b;
-  border-radius: 999px;
-  background: #b4232b;
-  color: #fff;
-  box-shadow: 0 6px 18px rgba(91, 31, 34, 0.22);
-  font-size: 13px;
-  font-weight: 700;
-  line-height: 1;
-  cursor: pointer;
-  transition: transform 0.18s ease, background-color 0.18s ease, box-shadow 0.18s ease;
-}
-.selection-explain-btn:hover {
-  background: #9f1f27;
-  box-shadow: 0 8px 22px rgba(91, 31, 34, 0.28);
-  transform: translateY(-2px);
-}
-.selection-action-icon {
-  width: 16px;
-  height: 16px;
-  flex: 0 0 16px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.6;
-  stroke-linecap: round;
-  stroke-linejoin: round;
 }
 :global(.maoxuan-source-highlight) {
   border-radius: 6px;

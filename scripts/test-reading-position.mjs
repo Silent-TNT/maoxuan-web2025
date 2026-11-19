@@ -4,6 +4,7 @@ const storage = new Map()
 const listeners = new Map()
 const frames = []
 let scrollCalls = 0
+let articleRendered = false
 
 globalThis.localStorage = {
   getItem: (key) => storage.get(key) ?? null,
@@ -16,7 +17,7 @@ globalThis.requestAnimationFrame = (callback) => {
 }
 globalThis.document = {
   documentElement: { scrollHeight: 2500, scrollTop: 0 },
-  querySelector: (selector) => (selector === '.vp-doc' ? {} : null),
+  querySelector: (selector) => (selector === '.VPDoc .vp-doc' && articleRendered ? {} : null),
   addEventListener: () => {},
   visibilityState: 'visible',
 }
@@ -42,6 +43,8 @@ const {
   normalizePath,
   isArticlePath,
   toDocumentPath,
+  getLastReadPath,
+  saveReadingPosition,
   restoreReadingPosition,
   setupReadingPosition,
 } = await import('../.vitepress/theme/reading-position.mjs')
@@ -53,17 +56,23 @@ assert.equal(
 assert.equal(isArticlePath('/第一卷/017-实践论'), true)
 assert.equal(toDocumentPath('/第一卷/017-实践论'), '/第一卷/017-实践论.html')
 assert.equal(toDocumentPath('/'), '/')
+assert.equal(getLastReadPath(), null)
 
 storage.set(
   'maoxuan-reading-v1',
   JSON.stringify({
     version: 1,
-    lastRead: null,
+    lastRead: { path: '/第一卷/017-实践论.html', scrollY: 900, ratio: 0.5, updatedAt: 1 },
     pages: {
       '/第一卷/017-实践论': { scrollY: 900, ratio: 0.5, updatedAt: 1 },
     },
   }),
 )
+
+assert.equal(getLastReadPath(), '/第一卷/017-实践论')
+saveReadingPosition('/')
+assert.equal(getLastReadPath(), '/第一卷/017-实践论')
+assert.equal(restoreReadingPosition('/'), false)
 
 assert.equal(restoreReadingPosition('/第一卷/017-实践论'), true)
 listeners.get('touchstart')()
@@ -71,6 +80,7 @@ while (frames.length) frames.shift()()
 assert.equal(scrollCalls, 0, '用户开始操作后不应再强制恢复滚动位置')
 
 assert.equal(restoreReadingPosition('/第一卷/017-实践论'), true)
+articleRendered = true
 while (frames.length) frames.shift()()
 assert.equal(scrollCalls, 1, '滚动位置只应恢复一次')
 assert.equal(window.scrollY, 950)
@@ -80,5 +90,8 @@ setupReadingPosition(router)
 assert.equal(typeof router.onBeforeRouteChange, 'function')
 assert.equal(typeof router.onAfterRouteChange, 'function')
 assert.equal(typeof router.onAfterPageLoad, 'function')
+window.scrollY = 0
+await router.onBeforeRouteChange(window.location.pathname)
+assert.equal(getLastReadPath(), '/第一卷/017-实践论', '初次载入时不应清除已有记录')
 
 console.log('reading-position tests: ok')

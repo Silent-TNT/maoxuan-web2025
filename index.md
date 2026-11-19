@@ -5,13 +5,6 @@ hero:
   name: "毛泽东选集"
   text: "在线阅读版"
   tagline: 星星之火，可以燎原
-  actions:
-    - theme: brand
-      text: 📖 立即开始阅读
-      link: /第一卷/001-中国社会各阶级的分析
-    - theme: alt
-      text: 🔥星火计划2049
-      link: /donate
 
 features:
   - title: 第一卷
@@ -48,6 +41,6 @@ features:
     text-indent: 0;
     line-height: 1.7;
   ">
-    从原文出发，把问题谈明白
+    世界可以被认识，也可以被改变
   </p>
 </div>

@@ -4,6 +4,7 @@ import { defineAsyncComponent, h } from 'vue'
 import './style.css'
 import SidebarCurrentArticle from './components/SidebarCurrentArticle.vue'
 import ReadingSettings from './components/ReadingSettings.vue'
+import HomeReadingActions from './components/HomeReadingActions.vue'
 import { trackPageview } from './baidu-tongji.mjs'
 import { setupReadingPosition } from './reading-position.mjs'
 
@@ -13,6 +14,8 @@ const Spark2049 = defineAsyncComponent(() => import('./components/Spark2049.vue'
 const DailyQuote = defineAsyncComponent(() => import('./components/DailyQuote.vue'))
 const AiChat = defineAsyncComponent(() => import('./components/AiChat.vue'))
 const MarginNotes = defineAsyncComponent(() => import('./components/MarginNotes.vue'))
+const ReadingFavorites = defineAsyncComponent(() => import('./components/ReadingFavorites.vue'))
+const MyFavorites = defineAsyncComponent(() => import('./components/MyFavorites.vue'))
 
 export default {
   extends: DefaultTheme,
@@ -27,6 +30,8 @@ export default {
       ],
 
       'aside-outline-before': () => h(MarginNotes),
+      'doc-before': () => h(ReadingFavorites),
+      'home-hero-actions-after': () => h(HomeReadingActions),
 
       // 首页保留每日一句，咨询室统一使用全站悬浮入口
       'home-hero-after': () => [
@@ -41,10 +46,11 @@ export default {
     app.component('DailyQuote', DailyQuote)
     app.component('AiChat', AiChat)
     app.component('MarginNotes', MarginNotes)
+    app.component('MyFavorites', MyFavorites)
     app.component('SidebarCurrentArticle', SidebarCurrentArticle)
 
     setupReadingPosition(router, {
-      onRouteChanged: (to) => trackPageview(to || undefined),
+      onRouteChanged: (to) => trackPageview(to?.replace(/#favorite-[\w-]+$/, '') || undefined),
     })
   },
 }

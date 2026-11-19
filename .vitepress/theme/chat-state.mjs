@@ -1,5 +1,7 @@
 import { ref, computed, watch } from 'vue'
 
+export const articleExplanationRequest = ref('')
+
 export const WELCOME_TEXT = '随便坐，莫拘束。遇到什么难处了？跟教员讲讲。'
 const LEGACY_WELCOME_TEXTS = new Set([
   '来咯，坐下，莫拘束。读《毛选》碰着哪处没想明白？是原文绕，概念一时拎不清，还是想拿书里的道理办眼前的事？莫急，把问题摆出来，我们一道从原文里慢慢理。',
