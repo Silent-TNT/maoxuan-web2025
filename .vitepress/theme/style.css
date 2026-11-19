@@ -308,7 +308,7 @@ button:focus-visible > .favorite-heart-icon,
     top: var(--vp-nav-height);
   }
 
-  .is-reading-local-nav-hidden .VPLocalNav:not(:has(:focus-visible, button[aria-expanded='true'], .VPLocalNavOutlineDropdown button.open)) {
+  .is-reading-nav-hidden .VPLocalNav:not(:has(:focus-visible, button[aria-expanded='true'], .VPLocalNavOutlineDropdown button.open)) {
     transform: translateY(-100%);
     pointer-events: none;
   }
@@ -346,8 +346,28 @@ button:focus-visible > .favorite-heart-icon,
     --vp-sidebar-width: clamp(232px, 15vw, 285px);
   }
 
+  .reading-article-page .Layout {
+    --reading-nav-offset: 0px;
+  }
+
+  .reading-article-page.is-reading-nav-hidden .Layout:not(:has(
+    > .VPNav :is(:focus-visible, .reading-settings[open], button[aria-expanded='true']),
+    > .VPLocalNav :is(:focus-visible, button[aria-expanded='true'], .VPLocalNavOutlineDropdown button.open)
+  )) {
+    --reading-nav-offset: calc(-1 * (var(--vp-nav-height) + 1px));
+    --reading-local-nav-offset: calc(var(--reading-nav-offset) - 100%);
+  }
+
+  .reading-article-page .Layout > .VPNav {
+    transform: translateY(var(--reading-nav-offset));
+  }
+
+  .reading-article-page.is-reading-nav-hidden .Layout > .VPLocalNav {
+    transform: translateY(var(--reading-local-nav-offset, 0px));
+  }
+
   .reading-article-page .VPSidebar {
-    top: calc(var(--vp-layout-top-height, 0px) + var(--vp-nav-height) + 1px);
+    top: calc(var(--vp-layout-top-height, 0px) + var(--vp-nav-height) + 1px + var(--reading-nav-offset));
     left: 0;
     width: var(--vp-sidebar-width);
     max-width: none;
@@ -388,6 +408,16 @@ button:focus-visible > .favorite-heart-icon,
   .reading-article-page .VPNavBar.has-sidebar .content {
     padding-left: var(--vp-sidebar-width);
     padding-right: 24px;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .reading-article-page .Layout > :is(.VPNav, .VPLocalNav) {
+      transition: transform 160ms ease;
+    }
+
+    .reading-article-page .VPSidebar:not(.open) {
+      transition: top 160ms ease, opacity 0.5s, transform 0.25s ease;
+    }
   }
 
 }

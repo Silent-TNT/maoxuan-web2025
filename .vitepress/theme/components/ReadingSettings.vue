@@ -14,29 +14,29 @@ const panel = ref<HTMLDetailsElement>()
 const drawer = ref<HTMLDialogElement>()
 const drawerOpen = ref(false)
 const isArticle = computed(() => Boolean(favoriteArticlePath(route.path)))
-const LOCAL_NAV_SCROLL_THRESHOLD = 12
-let mobileReading: MediaQueryList | undefined
+const NAV_SCROLL_THRESHOLD = 12
+let desktopReading: MediaQueryList | undefined
 let lastNavScrollY = 0
 
-function resetLocalNav() {
+function resetReadingNav() {
   lastNavScrollY = Math.max(0, window.scrollY)
-  document.body.classList.remove('is-reading-local-nav-hidden')
+  document.body.classList.remove('is-reading-nav-hidden')
 }
 
-function updateLocalNav() {
-  if (!isArticle.value || !mobileReading?.matches) return
+function updateReadingNav() {
+  if (!isArticle.value) return
 
   const scrollY = Math.max(0, window.scrollY)
   if (scrollY <= 64) {
-    resetLocalNav()
+    resetReadingNav()
     return
   }
 
   const distance = scrollY - lastNavScrollY
-  if (Math.abs(distance) < LOCAL_NAV_SCROLL_THRESHOLD) return
+  if (Math.abs(distance) < NAV_SCROLL_THRESHOLD) return
 
   lastNavScrollY = scrollY
-  document.body.classList.toggle('is-reading-local-nav-hidden', distance > 0)
+  document.body.classList.toggle('is-reading-nav-hidden', distance > 0)
 }
 
 async function openReadingConsultation() {
@@ -110,23 +110,23 @@ onMounted(() => {
   }
   document.addEventListener('pointerdown', onOutsideClick)
   document.addEventListener('keydown', onEscape)
-  mobileReading = window.matchMedia('(max-width: 959px)')
-  resetLocalNav()
-  mobileReading.addEventListener('change', resetLocalNav)
-  window.addEventListener('scroll', updateLocalNav, { passive: true })
+  desktopReading = window.matchMedia('(min-width: 960px)')
+  resetReadingNav()
+  desktopReading.addEventListener('change', resetReadingNav)
+  window.addEventListener('scroll', updateReadingNav, { passive: true })
 })
 
 watch(() => route.path, () => {
   closePanel()
   closeDrawer()
-  resetLocalNav()
+  resetReadingNav()
 })
 onBeforeUnmount(() => {
   document.removeEventListener('pointerdown', onOutsideClick)
   document.removeEventListener('keydown', onEscape)
-  mobileReading?.removeEventListener('change', resetLocalNav)
-  window.removeEventListener('scroll', updateLocalNav)
-  resetLocalNav()
+  desktopReading?.removeEventListener('change', resetReadingNav)
+  window.removeEventListener('scroll', updateReadingNav)
+  resetReadingNav()
 })
 </script>
 
