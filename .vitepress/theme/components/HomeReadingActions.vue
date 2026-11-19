@@ -72,6 +72,24 @@ onBeforeUnmount(() => window.removeEventListener('pageshow', refreshLastRead))
   overflow-wrap: anywhere;
 }
 
+@media (width < 640px) {
+  .home-reading-actions {
+    flex-wrap: nowrap;
+    gap: clamp(6px, 2vw, 10px);
+  }
+
+  .home-reading-actions > .VPButton.medium {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 38px;
+    padding-inline: clamp(7px, 2.25vw, 12px);
+    font-size: 13px;
+    line-height: normal;
+    letter-spacing: normal;
+  }
+}
+
 @media (min-width: 640px) {
   .home-reading-actions {
     padding-top: 32px;

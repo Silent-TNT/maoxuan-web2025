@@ -17,7 +17,7 @@
   </div>
 
   <div v-if="mode === 'float'" class="chat-float-wrapper">
-    <button class="chat-toggle-btn" @click="openModal">
+    <button class="chat-toggle-btn" :class="{ 'is-article': isArticlePage }" @click="openModal">
       ★ 阅读咨询室
     </button>
 
@@ -424,6 +424,7 @@ let requestTimeoutId = null
 let stopRequested = false
 let timeoutTriggered = false
 let quoteHighlightTimer = null
+let modalTrigger = null
 
 const CHAT_SCROLL_LOCK_ATTR = 'data-maoxuan-chat-scroll-lock'
 const CHAT_PREVIOUS_OVERFLOW_ATTR = 'data-maoxuan-chat-previous-overflow'
@@ -549,13 +550,9 @@ const sampleQuestions = [
 
 const feedbackReasons = ['答非所问', '原文不准', '解释太绕', '建议不具体']
 
-const openModal = async () => {
-  refreshArticleSwitchNotice()
+const openModal = () => {
   openChat()
   BaiduTrack.chatOpen(isHome.value ? 'home' : 'article')
-  scrollToBottom()
-  await nextTick()
-  bindVisualViewport()
 }
 
 function bindVisualViewport() {
@@ -578,17 +575,29 @@ function bindVisualViewport() {
   }
 }
 
+function prepareOpenModal() {
+  modalTrigger = document.activeElement
+  refreshArticleSwitchNotice()
+  lockPageScroll()
+  scrollToBottom()
+  nextTick(() => {
+    if (!isModalOpen.value) return
+    bindVisualViewport()
+    chatInputRef.value?.focus({ preventScroll: true })
+  })
+}
+
 watch(isModalOpen, (open) => {
   if (open) {
-    lockPageScroll()
-    nextTick(() => {
-      bindVisualViewport()
-      chatInputRef.value?.focus({ preventScroll: true })
-    })
+    prepareOpenModal()
   } else {
     unlockPageScroll()
     viewportCleanup?.()
     viewportCleanup = null
+    if (modalTrigger instanceof HTMLElement && modalTrigger.isConnected) {
+      modalTrigger.focus({ preventScroll: true })
+    }
+    modalTrigger = null
   }
 })
 
@@ -647,6 +656,7 @@ const onDocumentKeydown = (event) => {
 
 onMounted(() => {
   previousArticleLocation = currentArticleLocation()
+  if (isModalOpen.value) prepareOpenModal()
   document.addEventListener('pointerdown', onDocumentPointerDown)
   document.addEventListener('keydown', onDocumentKeydown)
   document.addEventListener('selectionchange', rememberArticleSelection)
@@ -1214,6 +1224,11 @@ watch(articleExplanationRequest, async (text) => {
 .chat-toggle-btn:hover {
   opacity: 0.9;
   transform: scale(1.05);
+}
+@media (max-width: 959px) {
+  .chat-toggle-btn.is-article {
+    display: none;
+  }
 }
 :global(.maoxuan-source-highlight) {
   border-radius: 6px;

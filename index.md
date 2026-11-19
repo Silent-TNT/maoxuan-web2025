@@ -28,16 +28,14 @@ features:
     link: /第四卷/090-抗日战争胜利后的时局和我们的方针
     linkText: 进入阅读
 ---
-<div align="center" style="margin-top: 60px; padding: 20px; background-color: var(--vp-c-bg-soft); border-radius: 10px;">
+<div class="home-wechat-card" align="center" style="background-color: var(--vp-c-bg-soft); border-radius: 10px;">
   <h3 style="margin-top: 0">微信扫码 关注「来点儿毛选」</h3>
   
-  <img src="/mobile-qr.jpg" alt="公众号二维码 - 来点儿毛选" width="150" style="margin-top: 10px; border-radius: 6px;">
+  <img src="/mobile-qr.jpg" alt="公众号二维码 - 来点儿毛选" width="150" style="border-radius: 6px;">
   
   <p style="
     color: var(--vp-c-text-2); 
     font-size: 13px; 
-    margin-top: 10px; 
-    text-align: center;
     text-indent: 0;
     line-height: 1.7;
   ">

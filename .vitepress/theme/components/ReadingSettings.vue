@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vitepress'
 import { favoriteArticlePath } from '../favorites.mjs'
+import { BaiduTrack } from '../baidu-tongji.mjs'
 
 const STORAGE_KEY = 'maoxuan-reading-font-size-v1'
 const DEFAULT_SIZE = 20
@@ -13,6 +14,37 @@ const panel = ref<HTMLDetailsElement>()
 const drawer = ref<HTMLDialogElement>()
 const drawerOpen = ref(false)
 const isArticle = computed(() => Boolean(favoriteArticlePath(route.path)))
+const LOCAL_NAV_SCROLL_THRESHOLD = 12
+let mobileReading: MediaQueryList | undefined
+let lastNavScrollY = 0
+
+function resetLocalNav() {
+  lastNavScrollY = Math.max(0, window.scrollY)
+  document.body.classList.remove('is-reading-local-nav-hidden')
+}
+
+function updateLocalNav() {
+  if (!isArticle.value || !mobileReading?.matches) return
+
+  const scrollY = Math.max(0, window.scrollY)
+  if (scrollY <= 64) {
+    resetLocalNav()
+    return
+  }
+
+  const distance = scrollY - lastNavScrollY
+  if (Math.abs(distance) < LOCAL_NAV_SCROLL_THRESHOLD) return
+
+  lastNavScrollY = scrollY
+  document.body.classList.toggle('is-reading-local-nav-hidden', distance > 0)
+}
+
+async function openReadingConsultation() {
+  const { openChat, isModalOpen } = await import('../chat-state.mjs')
+  if (!isArticle.value || isModalOpen.value) return
+  openChat()
+  BaiduTrack.chatOpen('article')
+}
 
 function applySize(size: number, keepPosition = false) {
   if (!Number.isInteger(size) || size < MIN_SIZE || size > MAX_SIZE) return
@@ -78,19 +110,37 @@ onMounted(() => {
   }
   document.addEventListener('pointerdown', onOutsideClick)
   document.addEventListener('keydown', onEscape)
+  mobileReading = window.matchMedia('(max-width: 959px)')
+  resetLocalNav()
+  mobileReading.addEventListener('change', resetLocalNav)
+  window.addEventListener('scroll', updateLocalNav, { passive: true })
 })
 
 watch(() => route.path, () => {
   closePanel()
   closeDrawer()
+  resetLocalNav()
 })
 onBeforeUnmount(() => {
   document.removeEventListener('pointerdown', onOutsideClick)
   document.removeEventListener('keydown', onEscape)
+  mobileReading?.removeEventListener('change', resetLocalNav)
+  window.removeEventListener('scroll', updateLocalNav)
+  resetLocalNav()
 })
 </script>
 
 <template>
+  <button
+    v-if="isArticle"
+    type="button"
+    class="reading-chat-link"
+    aria-label="阅读咨询室"
+    aria-haspopup="dialog"
+    @click="openReadingConsultation"
+  >
+    <span class="reading-chat-icon" aria-hidden="true"></span>
+  </button>
   <details v-if="isArticle" ref="panel" class="reading-settings">
     <summary aria-label="阅读字号设置" title="调整阅读字号">
       <span aria-hidden="true">Aa</span>
@@ -166,6 +216,8 @@ onBeforeUnmount(() => {
 summary { display: flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 8px; border-radius: 8px; color: var(--vp-c-text-1); cursor: pointer; list-style: none; font-size: 14px; }
 .reading-favorites-link { display: flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 8px; border-radius: 8px; color: var(--vp-c-text-1); font-size: 14px; white-space: nowrap; }
 .reading-favorites-link .favorite-heart-icon { --favorite-heart-size: 21px; flex: none; }
+.reading-chat-link { display: none; margin-inline-start: 12px; }
+.reading-chat-link:hover,
 .reading-favorites-link:hover,
 .reading-favorites-link[aria-expanded='true'] { background: var(--vp-c-bg-soft); color: var(--vp-c-brand-1); }
 summary::-webkit-details-marker { display: none; }
@@ -239,9 +291,32 @@ input { width: 100%; min-width: 0; height: 44px; accent-color: var(--vp-c-brand-
   .reading-favorites-drawer { transition: none; }
 }
 @media (max-width: 767px) {
-  .reading-settings { margin-left: 4px; }
+  .reading-chat-link { margin-inline-start: 4px; }
   .reading-favorites-link { justify-content: center; min-width: 38px; }
-  .reading-settings-label { display: none; }
   .reading-settings-panel { position: fixed; top: calc(var(--vp-nav-height) + 8px); right: 16px; }
+}
+@media (max-width: 959px) {
+  .reading-settings { margin-left: 0; }
+  .reading-settings-label { display: none; }
+  .reading-chat-link {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 38px;
+    height: 44px;
+    border-radius: 8px;
+  }
+  .reading-chat-icon {
+    width: 18px;
+    height: 18px;
+    background-color: var(--vp-c-neutral);
+    mask: url('/reading-consultation-star.svg') center / contain no-repeat;
+  }
+}
+@media (forced-colors: active) {
+  .reading-chat-icon {
+    background-color: ButtonText;
+    forced-color-adjust: none;
+  }
 }
 </style>

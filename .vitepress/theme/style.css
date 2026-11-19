@@ -298,7 +298,6 @@ button:focus-visible > .favorite-heart-icon,
   display: none !important;
 }
 
-/* 桌面端：解除 VitePress 的 1440px 居中外壳，让左目录真正贴近左侧。 */
 @media (max-width: 959px) {
   .reading-article-page .VPNav {
     position: sticky;
@@ -308,8 +307,40 @@ button:focus-visible > .favorite-heart-icon,
   .reading-article-page .VPLocalNav {
     top: var(--vp-nav-height);
   }
+
+  .is-reading-local-nav-hidden .VPLocalNav:not(:has(:focus-visible, button[aria-expanded='true'], .VPLocalNavOutlineDropdown button.open)) {
+    transform: translateY(-100%);
+    pointer-events: none;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .reading-article-page .VPLocalNav {
+      transition: transform 160ms ease;
+    }
+  }
 }
 
+@media (max-width: 767px) {
+  .VPNavBar:has(.reading-chat-link) .container > .title {
+    min-width: 0;
+    flex-shrink: 1;
+  }
+
+  .VPNavBar:has(.reading-chat-link) .VPNavBarTitle .title > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .VPNavBar:has(.reading-chat-link) .content {
+    flex-shrink: 0;
+  }
+
+  .VPNavBar:has(.reading-chat-link) .content-body {
+    column-gap: 4px;
+  }
+}
+
+/* 桌面端：解除 VitePress 的 1440px 居中外壳，让左目录真正贴近左侧。 */
 @media (min-width: 960px) {
   .reading-article-page {
     --vp-sidebar-width: clamp(232px, 15vw, 285px);
@@ -541,10 +572,37 @@ button:focus-visible > .favorite-heart-icon,
   box-shadow: 0 2px 10px rgba(210, 43, 43, 0.4) !important;
 }
 
-/* 首页：教员咨询室与下方四卷卡片同宽对齐 */
+/* 首页由大标题承担站名，阅读页继续显示导航站名。 */
+.Layout:has(.VPHomeHero) .VPNavBarTitle {
+  display: none;
+}
+
+.VPHome {
+  --home-section-gap: 40px;
+}
+
+.VPHome .home-wechat-card {
+  margin-top: var(--home-section-gap);
+  padding: 20px;
+}
+
+.VPHome .home-wechat-card > :is(img, p) {
+  margin-top: 10px;
+}
+
+.VPHome .home-wechat-card > p {
+  text-align: center;
+}
+
 /* 首页用主题的首屏插槽放引文，窄屏仍接在阅读按钮下方。 */
 .VPHomeHero:has(.home-hero-quote) {
-  padding-bottom: 60px;
+  padding-top: calc(var(--vp-nav-height) + var(--vp-layout-top-height, 0px) + 32px);
+  padding-bottom: var(--home-section-gap);
+}
+
+.VPHomeHero:has(.home-hero-quote) .heading :is(.name, .text) {
+  font-size: 40px;
+  line-height: 48px;
 }
 
 .VPHomeHero.has-image:has(.home-hero-quote) > .container {
@@ -557,7 +615,7 @@ button:focus-visible > .favorite-heart-icon,
 
 .VPHomeHero:has(.home-hero-quote) .image {
   order: 3;
-  margin: 88px -4px 0;
+  margin: 40px -4px 0;
   min-width: 0;
   min-height: 0;
 }
@@ -574,15 +632,90 @@ button:focus-visible > .favorite-heart-icon,
   padding: 0;
 }
 
-@media (min-width: 640px) and (max-width: 959px) {
+@media (min-width: 640px) {
+  .VPHomeHero:has(.home-hero-quote) {
+    padding-top: calc(var(--vp-nav-height) + var(--vp-layout-top-height, 0px) + 44px);
+  }
+
+  .VPHomeHero:has(.home-hero-quote) .heading :is(.name, .text) {
+    font-size: 52px;
+    line-height: 60px;
+  }
+
   .VPHomeHero:has(.home-hero-quote) .image {
-    margin: 104px -28px 0;
+    margin: 40px -28px 0;
   }
 }
 
 @media (min-width: 960px) {
+  .VPHome {
+    --home-section-gap: 32px;
+    display: grid;
+    align-content: space-between;
+    row-gap: var(--home-section-gap);
+    min-height: calc(100dvh - var(--vp-layout-top-height, 0px));
+    margin-bottom: 0;
+    padding-bottom: var(--home-section-gap);
+  }
+
+  .VPHome > .vp-doc.container {
+    margin-block: 0;
+  }
+
+  .VPHome .home-wechat-card,
+  .VPHomeFeatures .items {
+    margin-block: 0;
+  }
+
+  .VPHomeFeatures .item {
+    padding-block: 0;
+  }
+
+  /* 首页导航进入首屏右上方，沿用四卷卡片的版心。 */
+  .Layout:has(.VPHomeHero) {
+    --home-content-width: 1152px;
+    --home-page-gutter: 64px;
+  }
+
+  .Layout:has(.VPHomeHero) > .VPNav {
+    --vp-nav-height: 44px;
+    position: absolute;
+    top: calc(var(--vp-layout-top-height, 0px) + 26px);
+  }
+
+  .Layout:has(.VPHomeHero) > .VPNav .VPNavBar.home {
+    background-color: transparent;
+  }
+
+  .Layout:has(.VPHomeHero) .VPNavBar > .wrapper {
+    padding-inline: var(--home-page-gutter);
+  }
+
+  .Layout:has(.VPHomeHero) .VPNavBar .divider,
+  .Layout:has(.VPHomeHero) .VPNavBarSocialLinks:not(:has(a)) {
+    display: none;
+  }
+
+  .Layout:has(.VPHomeHero) > .VPContent.is-home {
+    padding-top: 0;
+  }
+
+  .Layout:has(.VPHomeHero) :is(.VPNavBar > .wrapper, .VPHomeHero, .VPHomeFeatures) > .container {
+    max-width: var(--home-content-width);
+  }
+
   .VPHomeHero:has(.home-hero-quote) {
-    padding-bottom: 48px;
+    margin-top: 0;
+    padding: 36px var(--home-page-gutter) 0;
+  }
+
+  .VPHomeFeatures {
+    padding-inline: var(--home-page-gutter);
+  }
+
+  .VPHomeHero:has(.home-hero-quote) .heading :is(.name, .text) {
+    font-size: 64px;
+    line-height: 72px;
   }
 
   .VPHomeHero.has-image:has(.home-hero-quote) > .container {
@@ -610,16 +743,94 @@ button:focus-visible > .favorite-heart-icon,
   }
 
   .VPHomeHero .home-hero-quote .quote-container {
+    --home-quote-top-inset: 40px;
     align-items: flex-end;
+    padding-top: var(--home-quote-top-inset);
   }
 
   .VPHomeHero .home-hero-quote .quote-card {
     min-height: 0;
-    padding: 20px clamp(24px, 3vw, 40px) 20px 0;
+    padding: 0 clamp(24px, 3vw, 40px) 0 0;
+  }
+
+  .VPHomeHero .home-hero-quote .quote-card::after {
+    inset-block: 0;
   }
 
   .VPHomeHero .home-hero-quote .content-wrapper {
     max-width: none;
+  }
+}
+
+@media (min-width: 1200px) {
+  .VPHomeHero .home-hero-quote .quote-container {
+    --home-quote-top-inset: 80px;
+  }
+}
+
+/* 较矮的桌面窗口压缩留白，二维码仍保持可扫码的原尺寸。 */
+@media (min-width: 960px) and (max-height: 860px) {
+  .VPHome {
+    --home-section-gap: clamp(12px, calc(5dvh - 18px), 24px);
+  }
+
+  .Layout:has(.VPHomeHero) > .VPNav {
+    top: calc(var(--vp-layout-top-height, 0px) + 18px);
+  }
+
+  .VPHomeHero:has(.home-hero-quote) {
+    padding-top: 28px;
+  }
+
+  .VPHomeHero:has(.home-hero-quote) .heading :is(.name, .text) {
+    font-size: clamp(54px, calc(10dvh - 26px), 60px);
+    line-height: calc(1em + 8px);
+  }
+
+  .VPHomeHero .home-reading-actions {
+    padding-top: 16px;
+  }
+
+  .VPHomeFeatures .VPFeature .box {
+    padding-block: 12px;
+  }
+
+  .VPHome .home-wechat-card {
+    padding-block: 14px;
+  }
+
+  .VPHome .home-wechat-card > p {
+    margin-bottom: 8px;
+  }
+}
+
+@media (min-width: 960px) and (max-height: 800px) {
+  .VPHome .home-wechat-card {
+    display: grid;
+    grid-template-areas: "qr title"
+                         "qr description";
+    grid-template-columns: auto auto;
+    justify-content: center;
+    column-gap: 24px;
+    padding: 10px 20px;
+    text-align: left;
+  }
+
+  .VPHome .home-wechat-card > h3 {
+    grid-area: title;
+    align-self: end;
+  }
+
+  .VPHome .home-wechat-card > img {
+    grid-area: qr;
+    margin-top: 0;
+  }
+
+  .VPHome .home-wechat-card > p {
+    grid-area: description;
+    align-self: start;
+    margin: 6px 0 0;
+    text-align: left;
   }
 }
 
