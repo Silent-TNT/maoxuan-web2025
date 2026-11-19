@@ -97,7 +97,6 @@ onUnmounted(() => {
         <div class="main-text">“ {{ currentQuote.text }} ”</div>
         <div class="source-text">—— {{ currentQuote.source }}</div>
       </div>
-      <div class="seal">每日<br>一语</div>
     </div>
   </div>
 </template>
@@ -117,32 +116,39 @@ onUnmounted(() => {
   position: relative;
   width: 100%;
   max-width: 600px; /* 限制最大宽度，电脑上不至于太宽 */
-  min-height: 140px; /* 给一个最小高度，防止跳动 */
+  height: 236px;
   padding: 30px 40px;
-  
-  /* 🔴 极简红框风格 */
-  border: 1px solid rgba(210, 43, 43, 0.3); /* 细红线 */
-  border-left: 4px solid #d22b2b; /* 左侧加粗，像书签 */
-  background-color: var(--vp-c-bg-soft); /* 跟随主题的柔和背景 */
   border-radius: 4px;
-  
+
   cursor: pointer;
-  transition: all 0.3s ease;
   user-select: none;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-end;
 }
 
-.quote-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(210, 43, 43, 0.1);
-  border-color: rgba(210, 43, 43, 0.6);
+.quote-card::after {
+  content: '';
+  position: absolute;
+  inset: 20px 0 20px auto;
+  width: 4px;
+  border-radius: 2px;
+  background-color: #d22b2b;
+  pointer-events: none;
+}
+
+@media (min-width: 1200px) {
+  .quote-card::after {
+    inset-block: 40px;
+  }
 }
 
 .content-wrapper {
-  text-align: center;
+  text-align: left;
   width: 100%;
+  max-width: 480px;
+  max-height: 100%;
+  overflow: auto;
 }
 
 /* 正文：横排宋体 */
@@ -162,26 +168,7 @@ onUnmounted(() => {
   color: var(--vp-c-text-2);
   opacity: 0.8;
   font-family: sans-serif;
-}
-
-/* 印章：放在右下角 */
-.seal {
-  position: absolute;
-  bottom: 15px;
-  right: 15px;
-  width: 32px;
-  height: 32px;
-  border: 1px solid #d22b2b;
-  border-radius: 4px;
-  color: #d22b2b;
-  font-size: 9px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  line-height: 1.1;
-  text-align: center;
-  opacity: 0.5;
-  transform: rotate(-10deg);
+  text-align: right;
 }
 
 /* 直接替换内容后淡入，避免先移除旧内容造成空白。 */
@@ -198,17 +185,22 @@ onUnmounted(() => {
 
 @media (prefers-reduced-motion: reduce) {
   .quote-auto-enter { animation: none; }
-  .quote-card { transition: none; }
 }
 
 /* 移动端适配 */
 @media (max-width: 600px) {
   .quote-card {
-    padding: 25px 20px;
-    min-height: 120px;
+    padding: 20px;
+    height: 248px;
   }
   .main-text {
     font-size: 18px; /* 手机字号稍微小一点 */
+  }
+}
+
+@media (max-width: 359px) {
+  .quote-card {
+    height: 280px;
   }
 }
 </style>

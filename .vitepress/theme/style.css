@@ -542,6 +542,87 @@ button:focus-visible > .favorite-heart-icon,
 }
 
 /* 首页：教员咨询室与下方四卷卡片同宽对齐 */
+/* 首页用主题的首屏插槽放引文，窄屏仍接在阅读按钮下方。 */
+.VPHomeHero:has(.home-hero-quote) {
+  padding-bottom: 60px;
+}
+
+.VPHomeHero.has-image:has(.home-hero-quote) > .container {
+  text-align: left;
+}
+
+.VPHomeHero:has(.home-hero-quote) .main :is(.name, .text, .tagline) {
+  margin-inline: 0;
+}
+
+.VPHomeHero:has(.home-hero-quote) .image {
+  order: 3;
+  margin: 88px -4px 0;
+  min-width: 0;
+  min-height: 0;
+}
+
+.VPHomeHero:has(.home-hero-quote) .image-container {
+  display: block;
+  width: auto;
+  height: auto;
+  transform: none;
+}
+
+.VPHomeHero .home-hero-quote .quote-container {
+  margin: 0;
+  padding: 0;
+}
+
+@media (min-width: 640px) and (max-width: 959px) {
+  .VPHomeHero:has(.home-hero-quote) .image {
+    margin: 104px -28px 0;
+  }
+}
+
+@media (min-width: 960px) {
+  .VPHomeHero:has(.home-hero-quote) {
+    padding-bottom: 48px;
+  }
+
+  .VPHomeHero.has-image:has(.home-hero-quote) > .container {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px; /* 与四卷卡片的列间距一致 */
+  }
+
+  .VPHomeHero:has(.home-hero-quote) .main {
+    width: auto;
+    max-width: none;
+  }
+
+  .VPHomeHero:has(.home-hero-quote) .image {
+    margin: 0;
+    /* 两列跟随左侧内容的高度，引文切换不影响首页布局。 */
+    contain: size;
+  }
+
+  .VPHomeHero:has(.home-hero-quote) .image-container,
+  .VPHomeHero .home-hero-quote,
+  .VPHomeHero .home-hero-quote .quote-container,
+  .VPHomeHero .home-hero-quote .quote-card {
+    height: 100%;
+  }
+
+  .VPHomeHero .home-hero-quote .quote-container {
+    align-items: flex-end;
+  }
+
+  .VPHomeHero .home-hero-quote .quote-card {
+    min-height: 0;
+    padding: 20px clamp(24px, 3vw, 40px) 20px 0;
+  }
+
+  .VPHomeHero .home-hero-quote .content-wrapper {
+    max-width: none;
+  }
+}
+
 .VPHome .chat-trigger-wrapper {
   padding: 0 24px;
 }

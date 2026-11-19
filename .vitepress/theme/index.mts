@@ -32,11 +32,7 @@ export default {
       'aside-outline-before': () => h(MarginNotes),
       'doc-before': () => h(ReadingFavorites),
       'home-hero-actions-after': () => h(HomeReadingActions),
-
-      // 首页保留每日一句，咨询室统一使用全站悬浮入口
-      'home-hero-after': () => [
-        h(DailyQuote),
-      ],
+      'home-hero-image': () => h('div', { class: 'home-hero-quote' }, [h(DailyQuote)]),
     })
   },
 
