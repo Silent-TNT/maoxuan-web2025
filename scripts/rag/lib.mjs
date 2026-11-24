@@ -7,9 +7,10 @@ export const RAG_DEFAULTS = {
   chunkSize: 400,
   chunkOverlap: 80,
   topK: 5,
-  maxChunkChars: 400,
-  minScore: 0.32,
 }
+
+export const CHUNK_VERSION = 3
+const sentenceSegmenter = new Intl.Segmenter('zh-CN', { granularity: 'sentence' })
 
 export function stripFrontmatter(content) {
   if (!content.startsWith('---')) return { fm: {}, body: content }
@@ -45,60 +46,63 @@ export function extractDisplayTitle(body, shortTitle) {
 
 export function normalizeBodyForChunking(body) {
   return body
-    .replace(/^---[\s\S]*?---\n/m, '')
-    .replace(/^# .+$/m, '')
     .replace(/\r\n/g, '\n')
+    .split(/^[ \t　]*(?:#{1,6}[ \t]+)?注[ \t　]*释[ \t　]*[：:]?[ \t　]*$/mu, 1)[0]
+    // 题解是 markdown 引用块，页面渲染后看不到 ">" 前缀，索引里也不能留，否则引文永远对不上
+    .replace(/^[ \t]*>[ \t]?/gmu, '')
     .replace(/[ \t]+/g, ' ')
     .replace(/\n{3,}/g, '\n\n')
     .trim()
 }
 
-/** 按段落累积切块，带重叠 */
+/** 单句超过目标长度时按句内标点拆开，避免出现 1000 字以上的块（超 embedding 输入上限） */
+function splitLongSentence(sentence, size) {
+  if (sentence.length <= size) return [sentence]
+  const parts = []
+  let rest = sentence
+  while (rest.length > size) {
+    let cut = -1
+    for (const match of rest.matchAll(/[，、；：]/gu)) {
+      if (match.index >= 20 && match.index <= size - 20 && match.index + 1 > cut) cut = match.index + 1
+    }
+    if (cut <= 0) cut = size
+    parts.push(rest.slice(0, cut))
+    rest = rest.slice(cut)
+  }
+  if (rest.trim()) parts.push(rest)
+  return parts.filter((part) => part.trim())
+}
+
+/** 章节内按整句切块，原句超过目标长度时保留全文。 */
 export function chunkText(text, opts = {}) {
   const size = opts.chunkSize ?? RAG_DEFAULTS.chunkSize
   const overlap = opts.chunkOverlap ?? RAG_DEFAULTS.chunkOverlap
-  const paragraphs = text.split(/\n+/).map((p) => p.trim()).filter(Boolean)
+  const sections = text.split(/^#{1,6}\s+.*$/mu)
   const chunks = []
-  let buf = ''
-
-  const flush = () => {
-    const t = buf.trim()
-    if (t.length >= 80) chunks.push(t)
-    buf = ''
-  }
-
-  for (const para of paragraphs) {
-    if (buf.length + para.length + 1 <= size) {
-      buf = buf ? `${buf}\n${para}` : para
-    } else {
-      if (buf) flush()
-      if (para.length <= size) {
-        buf = para
-      } else {
-        for (let i = 0; i < para.length; i += size - overlap) {
-          chunks.push(para.slice(i, i + size))
-        }
-        buf = ''
+  for (const section of sections) {
+    const sentences = section.split('\n').map((line) => line.trim())
+      .filter((line) => line && !/^[-*_]{3,}$/u.test(line))
+      .flatMap((line) => [...sentenceSegmenter.segment(line)].map(({ segment }) => segment.trim()))
+      .flatMap((sentence) => splitLongSentence(sentence, size))
+    let start = 0
+    while (start < sentences.length) {
+      let end = start + 1
+      let length = sentences[start].length
+      while (end < sentences.length && length + sentences[end].length + 1 <= size) {
+        length += sentences[end++].length + 1
       }
+      chunks.push(sentences.slice(start, end).join('\n'))
+      if (end === sentences.length) break
+      let next = end
+      let shared = 0
+      while (next > start + 1 && shared < overlap &&
+          shared + sentences[next - 1].length + sentences[end].length + 1 <= size) {
+        shared += sentences[--next].length + 1
+      }
+      start = next
     }
   }
-  if (buf) flush()
-
-  if (chunks.length <= 1) return chunks
-
-  const merged = []
-  for (let i = 0; i < chunks.length; i++) {
-    if (chunks[i].length < 120 && i + 1 < chunks.length) {
-      const combined = `${chunks[i]}\n${chunks[i + 1]}`
-      if (combined.length <= size + 100) {
-        merged.push(combined.slice(0, size + 100))
-        i++
-        continue
-      }
-    }
-    merged.push(chunks[i])
-  }
-  return merged
+  return chunks
 }
 
 export function listArticleFiles(root) {
@@ -125,15 +129,12 @@ export function buildChunksFromRepo(root) {
     const text = normalizeBodyForChunking(body)
     const parts = chunkText(text)
     parts.forEach((part, index) => {
-      const excerpt = part.length > RAG_DEFAULTS.maxChunkChars
-        ? part.slice(0, RAG_DEFAULTS.maxChunkChars) + '…'
-        : part
       chunks.push({
         id: `${meta.slug}#${index}`,
         volume,
         title,
         path: meta.path,
-        text: excerpt,
+        text: part,
       })
     })
   }
@@ -268,7 +269,7 @@ export function getEmbeddingConfig() {
   return { apiKey, baseUrl, model }
 }
 
-export async function embedTexts(texts, { apiKey, baseUrl, model }) {
+export async function embedTexts(texts, { apiKey, baseUrl, model, signal }) {
   if (!apiKey) {
     throw new Error(
       '缺少 EMBEDDING_API_KEY（或 SILICONFLOW_API_KEY）。请在 .env 中配置后运行 npm run rag:build'
@@ -276,6 +277,7 @@ export async function embedTexts(texts, { apiKey, baseUrl, model }) {
   }
   const response = await fetch(`${baseUrl}/embeddings`, {
     method: 'POST',
+    signal,
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${apiKey}`,
@@ -295,11 +297,53 @@ export async function embedTexts(texts, { apiKey, baseUrl, model }) {
   return list.map((item) => item.embedding)
 }
 
-export async function embedInBatches(texts, config, batchSize = 12) {
-  const all = []
+export function getRerankConfig() {
+  const apiKey = process.env.RERANK_API_KEY ||
+    process.env.EMBEDDING_API_KEY ||
+    process.env.SILICONFLOW_API_KEY
+  const baseUrl = (
+    process.env.RERANK_BASE_URL ||
+    process.env.EMBEDDING_BASE_URL ||
+    process.env.SILICONFLOW_BASE_URL ||
+    'https://api.siliconflow.cn/v1'
+  ).replace(/\/$/, '')
+  const model = process.env.RERANK_MODEL || 'BAAI/bge-reranker-v2-m3'
+  return { apiKey, baseUrl, model }
+}
+
+/** 交叉编码器重排：只用来改顺序，不用分数做绝对阈值（各家返回值量纲不同） */
+export async function rerankTexts(query, documents, { apiKey, baseUrl, model, signal }) {
+  if (!apiKey) throw new Error('缺少 rerank 密钥')
+  if (!documents.length) return []
+  const response = await fetch(`${baseUrl}/rerank`, {
+    method: 'POST',
+    signal,
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model,
+      query,
+      documents,
+      top_n: documents.length,
+      return_documents: false,
+    }),
+  })
+  const data = await response.json()
+  if (!response.ok) throw new Error(data.error?.message || data.message || JSON.stringify(data))
+  return (data.results || []).map(({ index, relevance_score: score }) => ({ index, score }))
+}
+
+export async function embedInBatches(texts, config, batchSize = 12) {  const all = []
   for (let i = 0; i < texts.length; i += batchSize) {
     const batch = texts.slice(i, i + batchSize)
-    const vectors = await embedTexts(batch, config)
+    const vectors = await embedTexts(batch, { ...config, signal: AbortSignal.timeout(30_000) })
+    const dimension = all[0]?.length || vectors[0]?.length
+    if (vectors.length !== batch.length || !dimension ||
+        vectors.some((vector) => vector?.length !== dimension || vector.some((value) => !Number.isFinite(value)))) {
+      throw new Error(`Embedding 批次返回了无效向量（起始位置 ${i}）`)
+    }
     all.push(...vectors)
     process.stdout.write(
       `\r  embedding ${Math.min(i + batch.length, texts.length)} / ${texts.length}`

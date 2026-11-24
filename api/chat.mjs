@@ -1,5 +1,6 @@
 // Vercel Serverless：教员咨询室
-import { handleChatRequest, handleChatStreamRequest } from './chat-handler.mjs'
+import { handleChatRequest, streamChatResponse } from './chat-handler.mjs'
+import { checkRateLimit, isBodyTooLarge, RATE_LIMITED_MESSAGE } from './rate-limit.mjs'
 
 function sendJson(res, status, body) {
   res.statusCode = status
@@ -27,25 +28,15 @@ export default async function handler(req, res) {
   }
 
   try {
+    if (isBodyTooLarge(req)) return sendJson(res, 413, { error: '请求体过大' })
+    const limited = await checkRateLimit(req)
+    if (!limited.allowed) {
+      res.setHeader('Retry-After', String(limited.retryAfter))
+      return sendJson(res, 429, { error: RATE_LIMITED_MESSAGE, retryAfter: limited.retryAfter })
+    }
     const body = parseBody(req)
     if (body.stream) {
-      res.statusCode = 200
-      res.setHeader('Content-Type', 'application/x-ndjson; charset=utf-8')
-      res.setHeader('Cache-Control', 'no-cache, no-transform')
-      res.flushHeaders?.()
-      const controller = new AbortController()
-      req.on('aborted', () => controller.abort())
-      try {
-        const result = await handleChatStreamRequest(
-          body,
-          (delta) => res.write(`${JSON.stringify({ type: 'delta', delta })}\n`),
-          controller.signal,
-        )
-        res.end(`${JSON.stringify({ type: 'done', ...result })}\n`)
-      } catch (error) {
-        res.end(`${JSON.stringify({ type: 'error', error: error.message || 'Server error' })}\n`)
-      }
-      return
+      return await streamChatResponse(req, res, body)
     }
     const result = await handleChatRequest(body)
     return sendJson(res, 200, result)

@@ -13,6 +13,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 loadEnv({ path: path.join(root, '.env') })
 import {
   buildChunksFromRepo,
+  CHUNK_VERSION,
   embedInBatches,
   getEmbeddingConfig,
 } from './lib.mjs'
@@ -29,12 +30,16 @@ async function main() {
   console.log(`Embedding 模型: ${config.model}`)
   console.log(`API: ${config.baseUrl}`)
 
-  const texts = chunks.map((c) => `${c.title}\n${c.text}`)
+  // bge 输入上限 512 token：超长块只取前 480 字符做向量，正文仍按全文入库
+  const EMBED_MAX_CHARS = 480
+  const texts = chunks.map((c) => `${c.title}\n${c.text}`.slice(0, EMBED_MAX_CHARS))
   const vectors = await embedInBatches(texts, config, 10)
   const dim = vectors[0]?.length ?? 0
 
+  // 向量保留 6 位小数：余弦精度足够，索引体积从 ~26MB 压回 ~16MB
+  const roundVector = (vector) => vector.map((value) => Math.round(value * 1e6) / 1e6)
   const index = {
-    version: 1,
+    version: CHUNK_VERSION,
     mode: 'vector',
     builtAt: new Date().toISOString(),
     model: config.model,
@@ -45,13 +50,19 @@ async function main() {
       title: c.title,
       path: c.path,
       text: c.text,
-      embedding: vectors[i],
+      embedding: roundVector(vectors[i]),
     })),
   }
 
   const json = JSON.stringify(index)
   const gz = zlib.gzipSync(Buffer.from(json, 'utf8'))
-  fs.writeFileSync(outGz, gz)
+  const temporaryIndex = `${outGz}.${process.pid}.tmp`
+  try {
+    fs.writeFileSync(temporaryIndex, gz, { flag: 'wx' })
+    fs.renameSync(temporaryIndex, outGz)
+  } finally {
+    fs.rmSync(temporaryIndex, { force: true })
+  }
   console.log(`已写入 ${outGz} (${(gz.length / 1024 / 1024).toFixed(2)} MB 压缩)`)
 
   if (process.env.RAG_WRITE_JSON === '1') {

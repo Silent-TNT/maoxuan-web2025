@@ -6,14 +6,14 @@ import fs from 'fs'
 import path from 'path'
 import zlib from 'zlib'
 import { fileURLToPath } from 'url'
-import { buildChunksFromRepo } from './lib.mjs'
+import { buildChunksFromRepo, CHUNK_VERSION } from './lib.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const outGz = path.join(root, 'api/rag-index.json.gz')
 
 const chunks = buildChunksFromRepo(root)
 const index = {
-  version: 1,
+  version: CHUNK_VERSION,
   mode: 'keyword',
   builtAt: new Date().toISOString(),
   chunks: chunks.map((c) => ({

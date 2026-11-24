@@ -12,17 +12,11 @@ loadEnv({ path: path.join(root, '.env') })
 
 const config = getEmbeddingConfig()
 
-function maskKey(key) {
-  if (!key) return '(未设置)'
-  if (key.length < 12) return '(过短，可能无效)'
-  return `${key.slice(0, 6)}…${key.slice(-4)}`
-}
-
 async function main() {
   console.log('Embedding 配置检查')
   console.log('  API:', config.baseUrl)
   console.log('  模型:', config.model)
-  console.log('  Key:', maskKey(config.apiKey))
+  console.log('  Key:', config.apiKey ? '已读取' : '未设置')
 
   if (!config.apiKey || /xxx|your_|replace|示例/i.test(config.apiKey)) {
     console.error('\n❌ EMBEDDING_API_KEY 仍是占位符或未填写。')
@@ -32,11 +26,14 @@ async function main() {
   }
 
   try {
-    const [vec] = await embedTexts(['语义检索连通性测试'], config)
+    const [vec] = await embedTexts(['语义检索连通性测试'], { ...config, signal: AbortSignal.timeout(8000) })
     console.log(`\n✅ API 可用，向量维度 ${vec.length}`)
     console.log('   可执行: npm run rag:build')
   } catch (err) {
-    console.error(`\n❌ 调用失败: ${err.message}`)
+    console.error(`\n❌ 调用失败: ${err.cause?.code || err.message}`)
+    if (err.cause?.code === 'ENOTFOUND') {
+      console.error('   当前 Node 进程无法解析接口域名，请检查这个终端的网络和 DNS。')
+    }
     if (/invalid/i.test(String(err.message))) {
       console.error('\n常见原因：')
       console.error('  1. Key 复制不完整，或多了空格、引号')

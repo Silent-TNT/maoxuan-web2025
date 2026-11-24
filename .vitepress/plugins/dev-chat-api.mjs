@@ -1,20 +1,7 @@
 import path from 'path'
-import { fileURLToPath, pathToFileURL } from 'url'
+import { fileURLToPath } from 'url'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
-const chatHandlerUrl = pathToFileURL(path.join(root, 'api/chat-handler.mjs')).href
-
-let cachedChatHandlers = null
-async function getChatHandlers() {
-  if (!cachedChatHandlers) {
-    const mod = await import(chatHandlerUrl)
-    cachedChatHandlers = {
-      handleChatRequest: mod.handleChatRequest,
-      handleChatStreamRequest: mod.handleChatStreamRequest,
-    }
-  }
-  return cachedChatHandlers
-}
 
 /** 本地 docs:dev 时把 /api/chat 转到 chat-handler（需已构建 rag-index 并配置 .env） */
 export function devChatApiPlugin() {
@@ -31,24 +18,27 @@ export function devChatApiPlugin() {
         }
 
         try {
+          const { checkRateLimit, isBodyTooLarge, RATE_LIMITED_MESSAGE } = await import('../../api/rate-limit.mjs')
+          if (isBodyTooLarge(req)) {
+            res.statusCode = 413
+            res.setHeader('Content-Type', 'application/json; charset=utf-8')
+            res.end(JSON.stringify({ error: '请求体过大' }))
+            return
+          }
+          // 本地调试放宽到每分钟 60 次
+          const limited = await checkRateLimit(req, { limit: 60 })
+          if (!limited.allowed) {
+            res.statusCode = 429
+            res.setHeader('Retry-After', String(limited.retryAfter))
+            res.setHeader('Content-Type', 'application/json; charset=utf-8')
+            res.end(JSON.stringify({ error: RATE_LIMITED_MESSAGE, retryAfter: limited.retryAfter }))
+            return
+          }
           await loadEnv()
-          const { handleChatRequest, handleChatStreamRequest } = await getChatHandlers()
+          const { handleChatRequest, streamChatResponse } = await server.ssrLoadModule('/api/chat-handler.mjs')
           const body = await readJsonBody(req)
           if (body.stream) {
-            res.statusCode = 200
-            res.setHeader('Content-Type', 'application/x-ndjson; charset=utf-8')
-            res.setHeader('Cache-Control', 'no-cache, no-transform')
-            res.flushHeaders?.()
-            try {
-              const result = await handleChatStreamRequest(
-                body,
-                (delta) => res.write(`${JSON.stringify({ type: 'delta', delta })}\n`),
-              )
-              res.end(`${JSON.stringify({ type: 'done', ...result })}\n`)
-            } catch (err) {
-              res.end(`${JSON.stringify({ type: 'error', error: err.message || 'Server error' })}\n`)
-            }
-            return
+            return await streamChatResponse(req, res, body)
           }
           const result = await handleChatRequest(body)
           res.setHeader('Content-Type', 'application/json; charset=utf-8')

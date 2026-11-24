@@ -5,7 +5,8 @@
   "cleanUrls": false,
   "functions": {
     "api/chat.mjs": {
-      "includeFiles": "{api/rag-index.json.gz,scripts/rag/lib.mjs}"
+      "maxDuration": 60,
+      "includeFiles": "{api/rag-index.json.gz,scripts/rag/lib.mjs,第一卷/*.md,第二卷/*.md,第三卷/*.md,第四卷/*.md}"
     }
   },
   "redirects": [

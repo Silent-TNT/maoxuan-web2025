@@ -1,5 +1,6 @@
 node_modules
 .vitepress/dist
+.vitepress/cache
 .env
 api/rag-index.json
 .vitepress/data/note-selectors.review.json
